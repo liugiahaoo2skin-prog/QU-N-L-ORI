@@ -1232,10 +1232,11 @@ function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').repl
    SUPABASE SYNC LOGIC
    ═══════════════════════════════════════ */
 const DEFAULT_SUPABASE_URL = "https://pqtwvmliujdcrlmbaxhv.supabase.co";
+const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdHd2bWxpdWpkY3JsbWJheGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjc4MTksImV4cCI6MjA5NTYwMzgxOX0.9tjClmzYhhGRmbyYZ_3EzqwoO6t8IUhxMDhoJQNtADw";
 
 function initSupabase() {
   const url = localStorage.getItem('sb_url') || DEFAULT_SUPABASE_URL;
-  const key = localStorage.getItem('sb_key') || "";
+  const key = localStorage.getItem('sb_key') || DEFAULT_SUPABASE_KEY;
   
   if (url && key) {
     try {
@@ -1507,7 +1508,7 @@ async function testSupabaseConnection() {
    ═══════════════════════════════════════ */
 async function init() {
   const savedUrl = localStorage.getItem('sb_url') || DEFAULT_SUPABASE_URL;
-  const savedKey = localStorage.getItem('sb_key') || "";
+  const savedKey = localStorage.getItem('sb_key') || DEFAULT_SUPABASE_KEY;
   
   const urlInput = document.getElementById('supabaseUrlInput');
   const keyInput = document.getElementById('supabaseKeyInput');
