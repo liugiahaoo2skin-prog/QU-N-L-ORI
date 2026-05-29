@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ═══════════════ RESET & TOKENS ═══════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -279,6 +280,7 @@ a{text-decoration:none;color:inherit}
     <div class="sub">Cổng CSKH</div>
   </div>
   <div class="header-right">
+    <span id="syncBadge" class="badge badge-amber" style="font-size:0.7rem; padding:4px 8px; cursor:pointer;" onclick="switchSection('cauhinh')">Đang kiểm tra kết nối...</span>
     <button class="hdr-btn" aria-label="Thông báo"><i class="ti ti-bell"></i></button>
     <div class="avatar-sm">DS</div>
   </div>
@@ -302,6 +304,10 @@ a{text-decoration:none;color:inherit}
     <div class="sb-item" data-section="mautinnhan" id="navMauTinNhan">
       <i class="ti ti-message-plus"></i>
       <span>Mẫu tin nhắn CSKH</span>
+    </div>
+    <div class="sb-item" data-section="cauhinh" id="navCauHinh">
+      <i class="ti ti-settings"></i>
+      <span>Cấu hình kết nối</span>
     </div>
   </div>
   <div class="sb-footer">
@@ -485,6 +491,30 @@ a{text-decoration:none;color:inherit}
   <div id="catSections"></div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     SECTION 3: CẤU HÌNH KẾT NỐI SUPABASE
+     ══════════════════════════════════════════ -->
+<div id="sectionCauHinh" class="hidden">
+  <h1 class="section-heading"><i class="ti ti-settings"></i> Cấu hình kết nối Supabase</h1>
+  <div class="info-box" style="background:var(--light); border-color:var(--acc); color:var(--pri); margin-bottom: 20px;">
+    <i class="ti ti-info-circle"></i>
+    <span>Cấu hình thông tin kết nối Supabase để đồng bộ dữ liệu trực tuyến giữa các thiết bị. Dữ liệu cấu hình sẽ được lưu trong trình duyệt của bạn.</span>
+  </div>
+  <div class="inline-form" style="background:var(--white); border:1px solid var(--gray200); border-radius:var(--radius-lg); padding:24px;">
+    <label style="font-weight:600; margin-bottom:6px; display:block;">Supabase URL</label>
+    <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co" value="https://pqtwvmliujdcrlmbaxhv.supabase.co" style="margin-bottom:16px;">
+    
+    <label style="font-weight:600; margin-bottom:6px; display:block;">Supabase Anon Key (Public Key)</label>
+    <input type="password" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="margin-bottom:20px;">
+    
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveSupabaseConfig()"><i class="ti ti-device-floppy"></i> Lưu cấu hình</button>
+      <button class="btn btn-ghost" onclick="testSupabaseConnection()"><i class="ti ti-refresh"></i> Kiểm tra kết nối</button>
+    </div>
+    <div id="configStatus" class="text-sm mt-12" style="font-weight:500;"></div>
+  </div>
+</div>
+
 </div><!-- /container -->
 </main>
 
@@ -611,7 +641,13 @@ let editingFlowIdx = null;
 /* ═══════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════ */
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function generateUuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+function uid() { return generateUuid(); }
 
 function getLS(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -635,7 +671,7 @@ overlay.addEventListener('click', closeSidebar);
    NAVIGATION
    ═══════════════════════════════════════ */
 let activeSection = 'camnang';
-const sections = { camnang: 'sectionCamNang', mautinnhan: 'sectionMauTinNhan' };
+const sections = { camnang: 'sectionCamNang', mautinnhan: 'sectionMauTinNhan', cauhinh: 'sectionCauHinh' };
 const navItems = document.querySelectorAll('.sb-item[data-section]');
 
 function switchSection(name) {
@@ -678,9 +714,19 @@ function renderQuList(type) {
 }
 
 function deleteQu(type, id) {
-  showConfirm('Xóa mục này?', 'Bạn có chắc chắn muốn xóa quy ước này?', () => {
+  showConfirm('Xóa mục này?', 'Bạn có chắc chắn muốn xóa quy ước này?', async () => {
+    if (supabase) {
+      updateSyncBadge(true, "Đang xóa...");
+      try {
+        const { error } = await supabase.from('quy_uoc_items').delete().eq('id', id);
+        if (error) throw error;
+      } catch (e) {
+        console.error("Lỗi khi xóa quy ước trên Supabase:", e);
+      }
+    }
     if (type === 'green') { quGreen = quGreen.filter(i => i.id !== id); setLS('qu_green', quGreen); renderQuList('green'); }
     else { quRed = quRed.filter(i => i.id !== id); setLS('qu_red', quRed); renderQuList('red'); }
+    updateSyncIndicator();
   });
 }
 
@@ -699,15 +745,35 @@ function showQuForm(type) {
   document.getElementById('quQuote_' + type).focus();
 }
 
-function saveQu(type) {
+async function saveQu(type) {
   const quote = document.getElementById('quQuote_' + type).value.trim();
   const explain = document.getElementById('quExplain_' + type).value.trim();
   if (!quote) return;
-  const item = { id: uid(), quote, explain };
+  const id = generateUuid();
+  const item = { id, quote, explain };
+  
+  if (supabase) {
+    updateSyncBadge(true, "Đang lưu...");
+    try {
+      const { error } = await supabase.from('quy_uoc_items').insert({
+        id,
+        type,
+        quote,
+        explain,
+        sort_order: type === 'green' ? quGreen.length : quRed.length
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error("Lỗi khi thêm quy ước vào Supabase:", e);
+      alert("Lỗi kết nối cơ sở dữ liệu. Đã lưu tạm thời tại máy này.");
+    }
+  }
+  
   if (type === 'green') { quGreen.push(item); setLS('qu_green', quGreen); }
   else { quRed.push(item); setLS('qu_red', quRed); }
   renderQuList(type);
   document.getElementById(type === 'green' ? 'quGreenFormWrap' : 'quRedFormWrap').innerHTML = '';
+  updateSyncIndicator();
 }
 
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -819,22 +885,60 @@ function cancelEditFlow() {
   renderFlows();
 }
 
-function saveEditFlow(idx) {
+async function saveEditFlow(idx) {
   const flow = flowsData[idx];
+  const updates = [];
+  let tipUpdate = null;
+  
   // Read step values
   flow.steps.forEach((s, si) => {
     const titleEl = document.getElementById('feTitle_' + idx + '_' + si);
     const descEl = document.getElementById('feDesc_' + idx + '_' + si);
     if (titleEl) s.title = titleEl.value.trim() || s.title;
     if (descEl) s.desc = descEl.value.trim() || s.desc;
+    
+    updates.push({
+      flow_index: idx,
+      step_index: si,
+      title: s.title,
+      description: s.desc
+    });
   });
+  
   // Read tip
   const tipEl = document.getElementById('feTip_' + idx);
-  if (tipEl) flow.tip = tipEl.value.trim();
-  // Persist
+  if (tipEl) {
+    flow.tip = tipEl.value.trim();
+    tipUpdate = { flow_index: idx, tip: flow.tip };
+  }
+  
+  if (supabase) {
+    updateSyncBadge(true, "Đang lưu...");
+    try {
+      for (let u of updates) {
+        const { error } = await supabase
+          .from('flow_steps')
+          .update({ title: u.title, description: u.description })
+          .eq('flow_index', u.flow_index)
+          .eq('step_index', u.step_index);
+        if (error) throw error;
+      }
+      if (tipUpdate) {
+        const { error } = await supabase
+          .from('flow_tips')
+          .upsert(tipUpdate, { onConflict: 'flow_index' });
+        if (error) throw error;
+      }
+    } catch (e) {
+      console.error("Lỗi khi cập nhật luồng trên Supabase:", e);
+      alert("Lỗi khi cập nhật cơ sở dữ liệu. Đã lưu tạm thời tại máy này.");
+    }
+  }
+  
   setLS('flows_data', flowsData);
   editingFlowIdx = null;
   renderFlows();
+  updateSyncIndicator();
 }
 
 function toggleFlow(header) {
@@ -931,7 +1035,6 @@ function renderTmplCard(t, cat) {
 }
 
 function copyTmpl(btn, text) {
-  // Decode escaped text
   const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'");
   navigator.clipboard.writeText(decoded).then(() => {
     const original = btn.innerHTML;
@@ -940,7 +1043,6 @@ function copyTmpl(btn, text) {
     btn.style.color = '#fff';
     setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; btn.style.color = ''; }, 1500);
   }).catch(() => {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = decoded; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
@@ -953,22 +1055,48 @@ function copyTmpl(btn, text) {
 function editTmpl(id) { editingTemplateId = id; renderCatSections(); }
 function cancelEditTmpl() { editingTemplateId = null; renderCatSections(); }
 
-function saveEditTmpl(cat, id) {
+async function saveEditTmpl(cat, id) {
   const sit = document.getElementById('editSit_' + id).value.trim();
   const cnt = document.getElementById('editCnt_' + id).value.trim();
   if (!sit || !cnt) return;
+  
+  if (supabase) {
+    updateSyncBadge(true, "Đang lưu mẫu...");
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .update({ situation: sit, content: cnt })
+        .eq('id', id);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Lỗi khi sửa mẫu trên Supabase:", e);
+      alert("Lỗi khi sửa mẫu trên cơ sở dữ liệu. Đã lưu tạm thời tại máy này.");
+    }
+  }
+  
   const tmpl = templates[cat].find(t => t.id === id);
   if (tmpl) { tmpl.situation = sit; tmpl.content = cnt; }
   editingTemplateId = null;
   saveTemplates();
   renderCatSections();
+  updateSyncIndicator();
 }
 
-function deleteTmpl(cat, id) {
-  showConfirm('Xóa mẫu tin nhắn này?', 'Mẫu tin nhắn sẽ bị xóa vĩnh viễn.', () => {
+async function deleteTmpl(cat, id) {
+  showConfirm('Xóa mẫu tin nhắn này?', 'Mẫu tin nhắn sẽ bị xóa vĩnh viễn.', async () => {
+    if (supabase) {
+      updateSyncBadge(true, "Đang xóa...");
+      try {
+        const { error } = await supabase.from('message_templates').delete().eq('id', id);
+        if (error) throw error;
+      } catch (e) {
+        console.error("Lỗi khi xóa mẫu trên Supabase:", e);
+      }
+    }
     templates[cat] = templates[cat].filter(t => t.id !== id);
     saveTemplates();
     renderCatSections();
+    updateSyncIndicator();
   });
 }
 
@@ -989,14 +1117,34 @@ function showAddTmpl(cat) {
   document.getElementById('newSit_' + cat)?.focus();
 }
 
-function saveAddTmpl(cat) {
+async function saveAddTmpl(cat) {
   const sit = document.getElementById('newSit_' + cat)?.value.trim();
   const cnt = document.getElementById('newCnt_' + cat)?.value.trim();
   if (!sit || !cnt) return;
+  const id = generateUuid();
+  
+  if (supabase) {
+    updateSyncBadge(true, "Đang lưu mẫu...");
+    try {
+      const { error } = await supabase.from('message_templates').insert({
+        id,
+        category_name: cat,
+        situation: sit,
+        content: cnt,
+        sort_order: templates[cat] ? templates[cat].length : 0
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error("Lỗi khi thêm mẫu vào Supabase:", e);
+      alert("Lỗi khi thêm mẫu vào cơ sở dữ liệu. Đã lưu tạm thời tại máy này.");
+    }
+  }
+  
   if (!templates[cat]) templates[cat] = [];
-  templates[cat].push({ id: uid(), situation: sit, content: cnt });
+  templates[cat].push({ id, situation: sit, content: cnt });
   saveTemplates();
   renderCatSections();
+  updateSyncIndicator();
 }
 
 function filterCat(cat) { activeCatFilter = cat; renderTemplateSection(); }
@@ -1019,14 +1167,31 @@ function hideAddCatForm() {
   document.getElementById('addCatForm').classList.add('hidden');
   document.getElementById('addCatInput').value = '';
 }
-function saveNewCat() {
+
+async function saveNewCat() {
   const name = document.getElementById('addCatInput').value.trim();
   if (!name || categories.includes(name)) return;
+  
+  if (supabase) {
+    updateSyncBadge(true, "Đang thêm danh mục...");
+    try {
+      const { error } = await supabase.from('template_categories').insert({
+        name,
+        order_index: categories.length
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error("Lỗi khi thêm danh mục vào Supabase:", e);
+      alert("Lỗi khi thêm danh mục vào cơ sở dữ liệu. Đã lưu tạm thời tại máy này.");
+    }
+  }
+  
   categories.push(name);
   templates[name] = [];
   saveTemplates();
   hideAddCatForm();
   renderTemplateSection();
+  updateSyncIndicator();
 }
 
 /* ═══════════════════════════════════════
@@ -1063,14 +1228,312 @@ document.getElementById('modalConfirmBtn').addEventListener('click', () => {
 function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
 /* ═══════════════════════════════════════
+   SUPABASE SYNC LOGIC
+   ═══════════════════════════════════════ */
+let supabase = null;
+const DEFAULT_SUPABASE_URL = "https://pqtwvmliujdcrlmbaxhv.supabase.co";
+
+function initSupabase() {
+  const url = localStorage.getItem('sb_url') || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem('sb_key') || "";
+  
+  if (url && key) {
+    try {
+      supabase = window.supabase.createClient(url, key);
+      updateSyncBadge(true, "Đang kiểm tra kết nối...");
+      return true;
+    } catch (e) {
+      console.error("Lỗi khởi tạo Supabase client:", e);
+      supabase = null;
+      updateSyncBadge(false, "Lỗi kết nối");
+    }
+  } else {
+    supabase = null;
+    updateSyncBadge(false, "Lưu cục bộ (Offline)");
+  }
+  return false;
+}
+
+function updateSyncBadge(online, text) {
+  const badge = document.getElementById('syncBadge');
+  if (!badge) return;
+  badge.className = "badge " + (online ? (text.includes("Lỗi") || text.includes("thất bại") ? "badge-red" : "badge-green") : "badge-amber");
+  badge.textContent = text;
+}
+
+function updateSyncIndicator() {
+  if (supabase) {
+    updateSyncBadge(true, "Đã đồng bộ trực tuyến");
+  } else {
+    updateSyncBadge(false, "Lưu cục bộ (Offline)");
+  }
+}
+
+async function syncAllFromSupabase() {
+  if (!supabase) return false;
+  try {
+    const { data: quData, error: quErr } = await supabase
+      .from('quy_uoc_items')
+      .select('*')
+      .order('sort_order', { ascending: true });
+      
+    if (quErr) throw quErr;
+    
+    const { data: catData, error: catErr } = await supabase
+      .from('template_categories')
+      .select('*')
+      .order('order_index', { ascending: true });
+      
+    if (catErr) throw catErr;
+    
+    const { data: tmplData, error: tmplErr } = await supabase
+      .from('message_templates')
+      .select('*')
+      .order('sort_order', { ascending: true });
+      
+    if (tmplErr) throw tmplErr;
+    
+    const { data: stepData, error: stepErr } = await supabase
+      .from('flow_steps')
+      .select('*')
+      .order('flow_index', { ascending: true })
+      .order('step_index', { ascending: true });
+      
+    if (stepErr) throw stepErr;
+    
+    const { data: tipData, error: tipErr } = await supabase
+      .from('flow_tips')
+      .select('*');
+      
+    if (tipErr) throw tipErr;
+
+    // Seed if empty
+    if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
+      updateSyncBadge(true, "Khởi tạo dữ liệu lần đầu...");
+      await seedSupabaseFromDefaults();
+      return syncAllFromSupabase();
+    }
+
+    // Map database values back to local variables
+    quGreen = quData.filter(i => i.type === 'green').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+    quRed = quData.filter(i => i.type === 'red').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+    
+    categories = catData.map(c => c.name);
+    templates = {};
+    categories.forEach(cat => { templates[cat] = []; });
+    tmplData.forEach(t => {
+      if (!templates[t.category_name]) {
+        templates[t.category_name] = [];
+      }
+      templates[t.category_name].push({
+        id: t.id,
+        situation: t.situation,
+        content: t.content
+      });
+    });
+    
+    const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
+    newFlowsData.forEach((flow, fIdx) => {
+      const flowSteps = stepData.filter(s => s.flow_index === fIdx);
+      if (flowSteps.length > 0) {
+        flow.steps = flowSteps.map(fs => ({
+          num: fs.title.split(': ')[0] || "Bước",
+          title: fs.title,
+          desc: fs.description
+        }));
+      }
+      const flowTip = tipData.find(t => t.flow_index === fIdx);
+      if (flowTip) {
+        flow.tip = flowTip.tip;
+      }
+    });
+    flowsData = newFlowsData;
+
+    updateSyncBadge(true, "Đã đồng bộ trực tuyến");
+    return true;
+  } catch (e) {
+    console.error("Lỗi đồng bộ dữ liệu từ Supabase:", e);
+    updateSyncBadge(true, "Lỗi đồng bộ dữ liệu");
+    return false;
+  }
+}
+
+async function seedSupabaseFromDefaults() {
+  if (!supabase) return;
+  try {
+    const quGreenToInsert = quGreen.map((item, idx) => ({
+      id: validateUuid(item.id) ? item.id : undefined,
+      type: 'green',
+      quote: item.quote,
+      explain: item.explain,
+      sort_order: idx
+    }));
+    const quRedToInsert = quRed.map((item, idx) => ({
+      id: validateUuid(item.id) ? item.id : undefined,
+      type: 'red',
+      quote: item.quote,
+      explain: item.explain,
+      sort_order: idx
+    }));
+    const allQu = [...quGreenToInsert, ...quRedToInsert];
+    if (allQu.length > 0) {
+      await supabase.from('quy_uoc_items').insert(allQu);
+    }
+
+    for (let cIdx = 0; cIdx < categories.length; cIdx++) {
+      const catName = categories[cIdx];
+      await supabase.from('template_categories').insert({
+        name: catName,
+        order_index: cIdx
+      });
+      
+      const tmpls = templates[catName] || [];
+      const tmplsToInsert = tmpls.map((t, idx) => ({
+        id: validateUuid(t.id) ? t.id : undefined,
+        category_name: catName,
+        situation: t.situation,
+        content: t.content,
+        sort_order: idx
+      }));
+      if (tmplsToInsert.length > 0) {
+        await supabase.from('message_templates').insert(tmplsToInsert);
+      }
+    }
+
+    const stepsToInsert = [];
+    const tipsToInsert = [];
+    flowsData.forEach((flow, fIdx) => {
+      flow.steps.forEach((s, sIdx) => {
+        stepsToInsert.push({
+          flow_index: fIdx,
+          step_index: sIdx,
+          title: s.title,
+          description: s.desc
+        });
+      });
+      if (flow.tip) {
+        tipsToInsert.push({
+          flow_index: fIdx,
+          tip: flow.tip
+        });
+      }
+    });
+    
+    if (stepsToInsert.length > 0) {
+      await supabase.from('flow_steps').insert(stepsToInsert);
+    }
+    if (tipsToInsert.length > 0) {
+      await supabase.from('flow_tips').insert(tipsToInsert);
+    }
+  } catch (e) {
+    console.error("Lỗi khi seed dữ liệu lên Supabase:", e);
+  }
+}
+
+function validateUuid(id) {
+  const s = "" + id;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+}
+
+function saveSupabaseConfig() {
+  const url = document.getElementById('supabaseUrlInput').value.trim();
+  const key = document.getElementById('supabaseKeyInput').value.trim();
+  const statusEl = document.getElementById('configStatus');
+  
+  if (!url || !key) {
+    statusEl.style.color = "var(--red)";
+    statusEl.textContent = "⚠️ Vui lòng nhập đầy đủ Supabase URL và Anon Key.";
+    return;
+  }
+  
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  
+  statusEl.style.color = "var(--pri)";
+  statusEl.textContent = "🔄 Đang lưu cấu hình và kiểm tra kết nối...";
+  
+  setTimeout(async () => {
+    const success = initSupabase();
+    if (success) {
+      const synced = await syncAllFromSupabase();
+      if (synced) {
+        statusEl.style.color = "var(--acc)";
+        statusEl.textContent = "✅ Lưu cấu hình thành công! Đã kết nối và đồng bộ dữ liệu.";
+        renderQuList('green');
+        renderQuList('red');
+        renderFlows();
+        renderTemplateSection();
+      } else {
+        statusEl.style.color = "var(--red)";
+        statusEl.textContent = "⚠️ Khởi tạo thành công nhưng không thể đồng bộ dữ liệu. Vui lòng kiểm tra lại quyền RLS của các bảng.";
+      }
+    } else {
+      statusEl.style.color = "var(--red)";
+      statusEl.textContent = "❌ Kết nối thất bại. Vui lòng kiểm tra lại URL và Anon Key.";
+    }
+  }, 500);
+}
+
+async function testSupabaseConnection() {
+  const url = document.getElementById('supabaseUrlInput').value.trim();
+  const key = document.getElementById('supabaseKeyInput').value.trim();
+  const statusEl = document.getElementById('configStatus');
+  
+  if (!url || !key) {
+    statusEl.style.color = "var(--red)";
+    statusEl.textContent = "⚠️ Vui lòng nhập đầy đủ để kiểm tra.";
+    return;
+  }
+  
+  statusEl.style.color = "var(--pri)";
+  statusEl.textContent = "🔍 Đang kết nối thử...";
+  
+  try {
+    const testClient = window.supabase.createClient(url, key);
+    const { error } = await testClient.from('quy_uoc_items').select('count', { count: 'exact', head: true });
+    if (error) throw error;
+    
+    statusEl.style.color = "var(--acc)";
+    statusEl.textContent = "✅ Kết nối tới Supabase thành công!";
+  } catch (e) {
+    console.error("Test connection error:", e);
+    statusEl.style.color = "var(--red)";
+    statusEl.textContent = "❌ Kết nối thất bại: " + e.message;
+  }
+}
+
+/* ═══════════════════════════════════════
    INIT
    ═══════════════════════════════════════ */
-function init() {
-  // Seed localStorage on first load
-  if (!localStorage.getItem('qu_green')) setLS('qu_green', quGreen);
-  if (!localStorage.getItem('qu_red')) setLS('qu_red', quRed);
-  if (!localStorage.getItem('templates')) { setLS('templates', templates); setLS('categories', categories); }
-  if (!localStorage.getItem('flows_data')) setLS('flows_data', flowsData);
+async function init() {
+  const savedUrl = localStorage.getItem('sb_url') || DEFAULT_SUPABASE_URL;
+  const savedKey = localStorage.getItem('sb_key') || "";
+  
+  const urlInput = document.getElementById('supabaseUrlInput');
+  const keyInput = document.getElementById('supabaseKeyInput');
+  
+  if (urlInput) urlInput.value = savedUrl;
+  if (keyInput) keyInput.value = savedKey;
+
+  const hasConfig = initSupabase();
+  let syncSuccess = false;
+  
+  if (hasConfig) {
+    syncSuccess = await syncAllFromSupabase();
+  }
+
+  if (!syncSuccess) {
+    if (!localStorage.getItem('qu_green')) setLS('qu_green', quGreen);
+    if (!localStorage.getItem('qu_red')) setLS('qu_red', quRed);
+    if (!localStorage.getItem('templates')) { setLS('templates', templates); setLS('categories', categories); }
+    if (!localStorage.getItem('flows_data')) setLS('flows_data', flowsData);
+    
+    quGreen = getLS('qu_green', quGreen);
+    quRed = getLS('qu_red', quRed);
+    templates = getLS('templates', templates);
+    categories = getLS('categories', categories);
+    flowsData = getLS('flows_data', flowsData);
+  }
 
   renderQuList('green');
   renderQuList('red');
