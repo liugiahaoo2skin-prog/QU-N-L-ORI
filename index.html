@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ═══════════════ RESET & TOKENS ═══════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -534,6 +534,7 @@ a{text-decoration:none;color:inherit}
 /* ═══════════════════════════════════════
    DATA & STATE
    ═══════════════════════════════════════ */
+var sbClient = null;
 
 // Default Quy Uoc items
 const DEFAULT_QU_GREEN = [
@@ -715,10 +716,10 @@ function renderQuList(type) {
 
 function deleteQu(type, id) {
   showConfirm('Xóa mục này?', 'Bạn có chắc chắn muốn xóa quy ước này?', async () => {
-    if (supabase) {
+    if (sbClient) {
       updateSyncBadge(true, "Đang xóa...");
       try {
-        const { error } = await supabase.from('quy_uoc_items').delete().eq('id', id);
+        const { error } = await sbClient.from('quy_uoc_items').delete().eq('id', id);
         if (error) throw error;
       } catch (e) {
         console.error("Lỗi khi xóa quy ước trên Supabase:", e);
@@ -752,10 +753,10 @@ async function saveQu(type) {
   const id = generateUuid();
   const item = { id, quote, explain };
   
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đang lưu...");
     try {
-      const { error } = await supabase.from('quy_uoc_items').insert({
+      const { error } = await sbClient.from('quy_uoc_items').insert({
         id,
         type,
         quote,
@@ -912,11 +913,11 @@ async function saveEditFlow(idx) {
     tipUpdate = { flow_index: idx, tip: flow.tip };
   }
   
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đang lưu...");
     try {
       for (let u of updates) {
-        const { error } = await supabase
+        const { error } = await sbClient
           .from('flow_steps')
           .update({ title: u.title, description: u.description })
           .eq('flow_index', u.flow_index)
@@ -924,7 +925,7 @@ async function saveEditFlow(idx) {
         if (error) throw error;
       }
       if (tipUpdate) {
-        const { error } = await supabase
+        const { error } = await sbClient
           .from('flow_tips')
           .upsert(tipUpdate, { onConflict: 'flow_index' });
         if (error) throw error;
@@ -1060,10 +1061,10 @@ async function saveEditTmpl(cat, id) {
   const cnt = document.getElementById('editCnt_' + id).value.trim();
   if (!sit || !cnt) return;
   
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đang lưu mẫu...");
     try {
-      const { error } = await supabase
+      const { error } = await sbClient
         .from('message_templates')
         .update({ situation: sit, content: cnt })
         .eq('id', id);
@@ -1084,10 +1085,10 @@ async function saveEditTmpl(cat, id) {
 
 async function deleteTmpl(cat, id) {
   showConfirm('Xóa mẫu tin nhắn này?', 'Mẫu tin nhắn sẽ bị xóa vĩnh viễn.', async () => {
-    if (supabase) {
+    if (sbClient) {
       updateSyncBadge(true, "Đang xóa...");
       try {
-        const { error } = await supabase.from('message_templates').delete().eq('id', id);
+        const { error } = await sbClient.from('message_templates').delete().eq('id', id);
         if (error) throw error;
       } catch (e) {
         console.error("Lỗi khi xóa mẫu trên Supabase:", e);
@@ -1123,10 +1124,10 @@ async function saveAddTmpl(cat) {
   if (!sit || !cnt) return;
   const id = generateUuid();
   
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đang lưu mẫu...");
     try {
-      const { error } = await supabase.from('message_templates').insert({
+      const { error } = await sbClient.from('message_templates').insert({
         id,
         category_name: cat,
         situation: sit,
@@ -1172,10 +1173,10 @@ async function saveNewCat() {
   const name = document.getElementById('addCatInput').value.trim();
   if (!name || categories.includes(name)) return;
   
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đang thêm danh mục...");
     try {
-      const { error } = await supabase.from('template_categories').insert({
+      const { error } = await sbClient.from('template_categories').insert({
         name,
         order_index: categories.length
       });
@@ -1230,7 +1231,6 @@ function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').repl
 /* ═══════════════════════════════════════
    SUPABASE SYNC LOGIC
    ═══════════════════════════════════════ */
-let supabase = null;
 const DEFAULT_SUPABASE_URL = "https://pqtwvmliujdcrlmbaxhv.supabase.co";
 
 function initSupabase() {
@@ -1239,16 +1239,16 @@ function initSupabase() {
   
   if (url && key) {
     try {
-      supabase = window.supabase.createClient(url, key);
+      sbClient = window.supabase.createClient(url, key);
       updateSyncBadge(true, "Đang kiểm tra kết nối...");
       return true;
     } catch (e) {
       console.error("Lỗi khởi tạo Supabase client:", e);
-      supabase = null;
+      sbClient = null;
       updateSyncBadge(false, "Lỗi kết nối");
     }
   } else {
-    supabase = null;
+    sbClient = null;
     updateSyncBadge(false, "Lưu cục bộ (Offline)");
   }
   return false;
@@ -1262,7 +1262,7 @@ function updateSyncBadge(online, text) {
 }
 
 function updateSyncIndicator() {
-  if (supabase) {
+  if (sbClient) {
     updateSyncBadge(true, "Đã đồng bộ trực tuyến");
   } else {
     updateSyncBadge(false, "Lưu cục bộ (Offline)");
@@ -1270,30 +1270,30 @@ function updateSyncIndicator() {
 }
 
 async function syncAllFromSupabase() {
-  if (!supabase) return false;
+  if (!sbClient) return false;
   try {
-    const { data: quData, error: quErr } = await supabase
+    const { data: quData, error: quErr } = await sbClient
       .from('quy_uoc_items')
       .select('*')
       .order('sort_order', { ascending: true });
       
     if (quErr) throw quErr;
     
-    const { data: catData, error: catErr } = await supabase
+    const { data: catData, error: catErr } = await sbClient
       .from('template_categories')
       .select('*')
       .order('order_index', { ascending: true });
       
     if (catErr) throw catErr;
     
-    const { data: tmplData, error: tmplErr } = await supabase
+    const { data: tmplData, error: tmplErr } = await sbClient
       .from('message_templates')
       .select('*')
       .order('sort_order', { ascending: true });
       
     if (tmplErr) throw tmplErr;
     
-    const { data: stepData, error: stepErr } = await supabase
+    const { data: stepData, error: stepErr } = await sbClient
       .from('flow_steps')
       .select('*')
       .order('flow_index', { ascending: true })
@@ -1301,7 +1301,7 @@ async function syncAllFromSupabase() {
       
     if (stepErr) throw stepErr;
     
-    const { data: tipData, error: tipErr } = await supabase
+    const { data: tipData, error: tipErr } = await sbClient
       .from('flow_tips')
       .select('*');
       
@@ -1359,7 +1359,7 @@ async function syncAllFromSupabase() {
 }
 
 async function seedSupabaseFromDefaults() {
-  if (!supabase) return;
+  if (!sbClient) return;
   try {
     const quGreenToInsert = quGreen.map((item, idx) => ({
       id: validateUuid(item.id) ? item.id : undefined,
@@ -1377,12 +1377,12 @@ async function seedSupabaseFromDefaults() {
     }));
     const allQu = [...quGreenToInsert, ...quRedToInsert];
     if (allQu.length > 0) {
-      await supabase.from('quy_uoc_items').insert(allQu);
+      await sbClient.from('quy_uoc_items').insert(allQu);
     }
 
     for (let cIdx = 0; cIdx < categories.length; cIdx++) {
       const catName = categories[cIdx];
-      await supabase.from('template_categories').insert({
+      await sbClient.from('template_categories').insert({
         name: catName,
         order_index: cIdx
       });
@@ -1396,7 +1396,7 @@ async function seedSupabaseFromDefaults() {
         sort_order: idx
       }));
       if (tmplsToInsert.length > 0) {
-        await supabase.from('message_templates').insert(tmplsToInsert);
+        await sbClient.from('message_templates').insert(tmplsToInsert);
       }
     }
 
@@ -1420,10 +1420,10 @@ async function seedSupabaseFromDefaults() {
     });
     
     if (stepsToInsert.length > 0) {
-      await supabase.from('flow_steps').insert(stepsToInsert);
+      await sbClient.from('flow_steps').insert(stepsToInsert);
     }
     if (tipsToInsert.length > 0) {
-      await supabase.from('flow_tips').insert(tipsToInsert);
+      await sbClient.from('flow_tips').insert(tipsToInsert);
     }
   } catch (e) {
     console.error("Lỗi khi seed dữ liệu lên Supabase:", e);
@@ -1489,8 +1489,8 @@ async function testSupabaseConnection() {
   statusEl.textContent = "🔍 Đang kết nối thử...";
   
   try {
-    const testClient = window.supabase.createClient(url, key);
-    const { error } = await testClient.from('quy_uoc_items').select('count', { count: 'exact', head: true });
+    const testSb = window.supabase.createClient(url, key);
+    const { error } = await testSb.from('quy_uoc_items').select('count', { count: 'exact', head: true });
     if (error) throw error;
     
     statusEl.style.color = "var(--acc)";
