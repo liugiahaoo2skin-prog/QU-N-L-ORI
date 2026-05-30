@@ -2569,7 +2569,7 @@
           const flowSteps = stepData.filter(s => s.flow_index === fIdx);
           if (flowSteps.length > 0) {
             flow.steps = flowSteps.map(fs => ({
-              num: fs.title.split(': ')[0] || "Bước",
+              num: fs.num || ('Bước ' + (fs.step_index + 1)),
               title: fs.title,
               desc: fs.description
             }));
