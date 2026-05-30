@@ -2089,13 +2089,6 @@
         <span class="badge badge-blue">Chế độ chỉnh sửa</span>
       </div>
       <div class="flow-edit-form">
-        <div class="flow-edit-form">
-        <div class="fe-step">
-          <label style="color:var(--pri);font-weight:700;">Tiêu đề luồng</label>
-          <input type="text" id="feFlowTitle_${idx}" value="${escAttr(flow.title)}">
-          <label style="color:var(--pri);font-weight:700;">Badge hiển thị</label>
-          <input type="text" id="feFlowBadge_${idx}" value="${escAttr(flow.badge || '')}">
-        </div>
         ${stepsFields}
         ${tipField}
         <div class="fe-actions">
@@ -2118,10 +2111,6 @@
 
     async function saveEditFlow(idx) {
       const flow = flowsData[idx];
-      const titleEl = document.getElementById('feFlowTitle_' + idx);
-const badgeEl = document.getElementById('feFlowBadge_' + idx);
-if (titleEl) flow.title = titleEl.value.trim() || flow.title;
-if (badgeEl) flow.badge = badgeEl.value.trim();
       const updates = [];
       let tipUpdate = null;
 
@@ -2567,23 +2556,23 @@ if (badgeEl) flow.badge = badgeEl.value.trim();
           });
         });
 
-        const allIndexes = [...new Set(stepData.map(s => s.flow_index))].sort((a,b) => a-b);
-const newFlowsData = allIndexes.map(fIdx => {
-  const existing = DEFAULT_FLOWS_DATA[fIdx] || { title: 'Luồng ' + (fIdx+1), badge: '', badgeClass: 'badge-teal', color: 'teal', steps: [] };
-  const flow = JSON.parse(JSON.stringify(existing));
-  const flowSteps = stepData.filter(s => s.flow_index === fIdx);
-  if (flowSteps.length > 0) {
-    flow.steps = flowSteps.map(fs => ({
-      num: fs.num || ('Bước ' + (fs.step_index + 1)),
-      title: fs.title,
-      desc: fs.description
-    }));
-  }
-  const flowTip = tipData.find(t => t.flow_index === fIdx);
-  if (flowTip) flow.tip = flowTip.tip;
-  return flow;
-});
-flowsData = newFlowsData;
+        const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
+        newFlowsData.forEach((flow, fIdx) => {
+          const flowSteps = stepData.filter(s => s.flow_index === fIdx);
+          if (flowSteps.length > 0) {
+            flow.steps = flowSteps.map(fs => ({
+              num: fs.num || ('Bước ' + (fs.step_index + 1)),
+              title: fs.title,
+              desc: fs.description
+            }));
+          }
+          const flowTip = tipData.find(t => t.flow_index === fIdx);
+          if (flowTip) {
+            flow.tip = flowTip.tip;
+          }
+        });
+        flowsData = newFlowsData;
+
         updateSyncBadge(true, "Đã đồng bộ trực tuyến");
         renderTemplateSection(); 
         return true;
