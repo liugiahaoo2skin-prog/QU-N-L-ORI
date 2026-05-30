@@ -2494,67 +2494,76 @@
     }
 
     async function syncAllFromSupabase() {
-      if (!sbClient) return false;
-      try {
-        const { data: quData, error: quErr } = await sbClient
-          .from('quy_uoc_items')
-          .select('*')
-          .order('sort_order', { ascending: true });
+  if (!sbClient) return false;
+  try {
+    const { data: quData, error: quErr } = await sbClient.from('quy_uoc_items').select('*').order('sort_order', { ascending: true });
+    if (quErr) throw quErr;
 
-        if (quErr) throw quErr;
+    const { data: catData, error: catErr } = await sbClient.from('template_categories').select('*').order('order_index', { ascending: true });
+    if (catErr) throw catErr;
 
-        const { data: catData, error: catErr } = await sbClient
-          .from('template_categories')
-          .select('*')
-          .order('order_index', { ascending: true });
+    const { data: tmplData, error: tmplErr } = await sbClient.from('message_templates').select('*').order('sort_order', { ascending: true });
+    if (tmplErr) throw tmplErr;
 
-        if (catErr) throw catErr;
+    const { data: stepData, error: stepErr } = await sbClient.from('flow_steps').select('*').order('flow_index', { ascending: true }).order('step_index', { ascending: true });
+    if (stepErr) throw stepErr;
 
-        const { data: tmplData, error: tmplErr } = await sbClient
-          .from('message_templates')
-          .select('*')
-          .order('sort_order', { ascending: true });
+    const { data: tipData, error: tipErr } = await sbClient.from('flow_tips').select('*');
+    if (tipErr) throw tipErr;
 
-        if (tmplErr) throw tmplErr;
+    const { data: metaData, error: metaErr } = await sbClient.from('flow_metadata').select('*');
+    if (metaErr) throw metaErr;
 
-        const { data: stepData, error: stepErr } = await sbClient
-          .from('flow_steps')
-          .select('*')
-          .order('flow_index', { ascending: true })
-          .order('step_index', { ascending: true });
+    if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
+      updateSyncBadge(true, "Khởi tạo dữ liệu lần đầu...");
+      await seedSupabaseFromDefaults();
+      return syncAllFromSupabase();
+    }
 
-        if (stepErr) throw stepErr;
+    quGreen = quData.filter(i => i.type === 'green').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+    quRed = quData.filter(i => i.type === 'red').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
 
-        const { data: tipData, error: tipErr } = await sbClient
-          .from('flow_tips')
-          .select('*');
+    categories = catData.map(c => c.name);
+    templates = {};
+    categories.forEach(cat => { templates[cat] = []; });
+    tmplData.forEach(t => {
+      if (!templates[t.category_name]) templates[t.category_name] = [];
+      templates[t.category_name].push({ id: t.id, situation: t.situation, content: t.content });
+    });
 
-        if (tipErr) throw tipErr;
+    const allIndexes = [...new Set(stepData.map(s => s.flow_index))].sort((a, b) => a - b);
+    flowsData = allIndexes.map(fIdx => {
+      const meta = metaData.find(m => m.flow_index === fIdx);
+      const existing = DEFAULT_FLOWS_DATA[fIdx] || { title: 'Luồng ' + (fIdx + 1), badge: '', badgeClass: 'badge-teal', color: 'teal', steps: [] };
+      const flow = JSON.parse(JSON.stringify(existing));
+      if (meta) {
+        flow.title = meta.title || flow.title;
+        flow.badge = meta.badge || flow.badge;
+        flow.badgeClass = meta.badge_class || flow.badgeClass;
+        flow.color = meta.color || flow.color;
+      }
+      const flowSteps = stepData.filter(s => s.flow_index === fIdx);
+      if (flowSteps.length > 0) {
+        flow.steps = flowSteps.map(fs => ({
+          num: fs.num || ('Bước ' + (fs.step_index + 1)),
+          title: fs.title,
+          desc: fs.description
+        }));
+      }
+      const flowTip = tipData.find(t => t.flow_index === fIdx);
+      if (flowTip) flow.tip = flowTip.tip;
+      return flow;
+    });
 
-        // Seed if empty
-        if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
-          updateSyncBadge(true, "Khởi tạo dữ liệu lần đầu...");
-          await seedSupabaseFromDefaults();
-          return syncAllFromSupabase();
-        }
-
-        // Map database values back to local variables
-        quGreen = quData.filter(i => i.type === 'green').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
-        quRed = quData.filter(i => i.type === 'red').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
-
-        categories = catData.map(c => c.name);
-        templates = {};
-        categories.forEach(cat => { templates[cat] = []; });
-        tmplData.forEach(t => {
-          if (!templates[t.category_name]) {
-            templates[t.category_name] = [];
-          }
-          templates[t.category_name].push({
-            id: t.id,
-            situation: t.situation,
-            content: t.content
-          });
-        });
+    updateSyncBadge(true, "Đã đồng bộ trực tuyến");
+    renderTemplateSection();
+    return true;
+  } catch (e) {
+    console.error("Lỗi đồng bộ:", e);
+    updateSyncBadge(false, "Lỗi đồng bộ dữ liệu");
+    return false;
+  }
+};
 
         const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
         newFlowsData.forEach((flow, fIdx) => {
