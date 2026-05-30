@@ -1685,571 +1685,184 @@
         </div>
       </div>
 
-     <!-- ══════════════════════════════════════════
+      <!-- ══════════════════════════════════════════
      SECTION 2: MẪU TIN NHẮN CSKH
      ══════════════════════════════════════════ -->
-<div id="sectionMauTinNhan" class="hidden">
-  <h1 class="section-heading"><i class="ti ti-message-plus"></i> Mẫu tin nhắn CSKH</h1>
-  <div class="search-wrap">
-    <i class="ti ti-search"></i>
-    <input type="text" class="search-input" id="searchTemplate" placeholder="Tìm kiếm mẫu tin nhắn...">
-  </div>
-
-  <div class="cat-tabs" id="catTabs"></div>
-  <div class="add-cat-wrap" id="addCatWrap">
-    <button class="add-cat-btn" id="addCatBtn" onclick="showAddCatForm()"><i class="ti ti-plus"></i> Thêm danh mục mới</button>
-    <div class="add-cat-form hidden" id="addCatForm">
-      <input type="text" id="addCatInput" placeholder="Tên danh mục mới...">
-      <button class="btn btn-primary" onclick="saveNewCat()">Lưu</button>
-      <button class="btn btn-ghost" onclick="hideAddCatForm()">Hủy</button>
-    </div>
-  </div>
-  <div id="catSections"></div>
-</div>
-
-</div><!-- /container -->
-</main>
-
-<!-- ═══════════ CONFIRM MODAL ═══════════ -->
-<div class="modal-overlay" id="confirmModal">
-  <div class="modal">
-    <div class="modal-title" id="modalTitle">Xác nhận</div>
-    <div class="modal-text" id="modalText">Bạn có chắc chắn muốn thực hiện?</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy</button>
-      <button class="btn btn-red" id="modalConfirmBtn">Xóa</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ═══════════════════════════════════════
-   DATA & STATE
-   ═══════════════════════════════════════ */
-
-// Default Quy Uoc items
-const DEFAULT_QU_GREEN = [
-  { id: 'g1', quote: '"Với tình trạng da bạn vừa mô tả..."', explain: 'Lắng nghe cá nhân hóa, thể hiện sự lắng nghe kỹ.' },
-  { id: 'g2', quote: '"Thành phần hoạt chất X giúp cải thiện Y nhờ cơ chế..."', explain: 'Sử dụng chuyên môn y khoa chính thống để tăng uy tín.' },
-  { id: 'g3', quote: '"Mình đề xuất bạn có thể nhắc thêm giải pháp..."', explain: 'Khơi gợi giải pháp nhẹ nhàng, không ép khách mua.' },
-  { id: 'g4', quote: '"Mình rất tiếc và hiểu cảm giác của bạn lúc này..."', explain: 'Tuyệt đối cần dùng đối với khách hàng khiếu nại, xử lý khéo léo.' }
-];
-const DEFAULT_QU_RED = [
-  { id: 'r1', quote: '"Trị dứt điểm hoàn toàn / Cam kết 100%..."', explain: 'Cấm đoán. Sai lệch bản chất khoa học của ngành da liễu.' },
-  { id: 'r2', quote: '"Bên shop khác bán toàn là hàng fake đó..."', explain: 'Hành vi hạ bệ, đánh phá đối thủ làm mất uy tín thương hiệu.' },
-  { id: 'r3', quote: '"Do bạn tự dùng sai hướng dẫn nên mới bị..."', explain: 'Đổ lỗi cho khách hàng trước khi tìm hiểu rõ căn nguyên.' },
-  { id: 'r4', quote: '"Cái này mình cũng không rõ/không biết nữa..."', explain: 'Nếu chưa rõ, phải xin phép kiểm tra rồi phản hồi lại ngay sau đó.' }
-];
-
-// Default templates
-const DEFAULT_TEMPLATES = {
-  "Chào hỏi / Tiếp nhận": [
-    { id: 't1', situation: 'Mở đầu chuẩn', content: 'Dược sĩ tư vấn Ori Derm xin chào [Tên khách]! Mình có thể hỗ trợ gì cho bạn hôm nay ạ? 🌿' },
-    { id: 't2', situation: 'Khách nhắn ngoài giờ', content: 'Ori Derm đã ghi nhận tin nhắn của bạn. Dược sĩ tư vấn sẽ phản hồi trong vòng 30 phút khi bắt đầu giờ làm việc (8:00–22:00). Bạn vui lòng chờ nhé! 🙏' }
-  ],
-  "Xác nhận đơn hàng": [
-    { id: 't3', situation: 'Đơn vừa đặt thành công', content: 'Ori Derm đã nhận được đơn hàng #[MÃ ĐƠN] của bạn rồi ạ! 🎉 Dự kiến giao trong [X] ngày làm việc. Mình sẽ cập nhật mã vận đơn ngay khi hàng xuất kho nhé.' },
-    { id: 't4', situation: 'Xác nhận COD', content: 'Bạn đặt thanh toán khi nhận hàng (COD), Ori Derm xin xác nhận đơn #[MÃ ĐƠN] — tổng thanh toán khi nhận: [SỐ TIỀN]đ. Shipper sẽ liên hệ trước khi giao nhé!' }
-  ],
-  "Cập nhật vận chuyển": [
-    { id: 't5', situation: 'Thông báo xuất kho', content: 'Đơn hàng #[MÃ ĐƠN] của bạn vừa xuất kho rồi ạ! 📦 Mã vận đơn: [MÃ VẬN ĐƠN]. Bạn có thể tra cứu tại ghtk.vn nhé. Dự kiến nhận hàng: [NGÀY].' },
-    { id: 't6', situation: 'Đơn bị chậm', content: 'Ori Derm thành thật xin lỗi bạn vì đơn #[MÃ ĐƠN] bị chậm hơn dự kiến do [LÝ DO]. Đơn sẽ đến tay bạn chậm nhất vào [NGÀY MỚI]. Ori Derm gửi kèm mã ưu đãi [MÃ] giảm [X]% cho đơn tiếp theo để bù đắp nhé! 🙏' }
-  ],
-  "Xử lý khiếu nại / Đổi trả": [
-    { id: 't7', situation: 'Khách phản ánh kích ứng', content: 'Mình rất tiếc khi nghe bạn gặp tình trạng này 😔 Bạn có thể chụp ảnh vùng da bị kích ứng dưới ánh sáng tự nhiên gửi cho mình không ạ? Mình sẽ đánh giá và hỗ trợ ngay.' },
-    { id: 't8', situation: 'Xác nhận đổi/trả hàng', content: 'Ori Derm xác nhận yêu cầu đổi/trả đơn #[MÃ ĐƠN] của bạn. Bạn vui lòng gửi hàng về địa chỉ: [ĐỊA CHỈ KHO]. Sau khi nhận hàng, Ori Derm sẽ hoàn tiền/đổi hàng trong vòng 2–3 ngày làm việc.' }
-  ],
-  "Tư vấn sản phẩm": [
-    { id: 't9', situation: 'Chưa xác định loại da', content: 'Để tư vấn chính xác nhất, bạn cho mình biết thêm:\n(1) Loại da của bạn là da dầu, da khô hay da hỗn hợp?\n(2) Vấn đề da bạn đang muốn cải thiện nhất là gì?\n(3) Hiện bạn đang dùng những sản phẩm nào rồi ạ?' },
-    { id: 't10', situation: 'Khuyến nghị routine cơ bản', content: 'Dựa trên tình trạng da bạn chia sẻ, mình đề xuất routine cơ bản:\n\nSáng: Sữa rửa mặt → Toner → Serum vitamin C → Kem chống nắng SPF50+.\nTối: Sữa rửa mặt → Toner → Serum trị liệu → Kem dưỡng ẩm.\n\nBạn muốn mình gợi ý sản phẩm cụ thể ở bước nào không ạ?' }
-  ],
-  "Kết thúc hội thoại": [
-    { id: 't11', situation: 'Kết thúc chuẩn', content: 'Cảm ơn bạn đã tin tưởng Ori Derm! 🌿 Nếu còn thắc mắc gì về da liễu hoặc sản phẩm, bạn cứ nhắn lại bất cứ lúc nào nhé. Chúc bạn một ngày thật vui!' },
-    { id: 't12', situation: 'Sau khi giải quyết khiếu nại', content: 'Ori Derm rất vui vì đã hỗ trợ được bạn. Sự hài lòng của bạn là điều Ori Derm luôn đặt lên hàng đầu 🙏 Chúc bạn mau hồi phục và làn da sớm cải thiện nhé!' }
-  ]
-};
-
-const DEFAULT_FLOWS_DATA = [
-  {
-    title: 'Luồng 1 — Khách tìm hiểu sản phẩm cụ thể',
-    badge: 'Tỷ lệ gặp: 70%', badgeClass: 'badge-teal', color: 'teal',
-    steps: [
-      { num: 'Bước 1', title: 'Đọc hiểu tâm lý', desc: 'Nhận diện tâm lý khách để điều chỉnh cách tư vấn phù hợp' },
-      { num: 'Bước 2a', title: 'Có sẵn SP?', desc: 'Cung cấp công dụng chính xác, có các điểm lưu ý nếu cần' },
-      { num: 'Bước 2b', title: 'Chưa có SP?', desc: 'Hỏi 3 câu hỏi sàng lọc: Tuổi, Giới tính, Thời gian sử dụng' },
-      { num: 'Bước 3', title: 'Đồng tư vấn', desc: 'Đưa ra routine gợi ý kèm giải thích ngắn để khách hiểu rõ' }
-    ],
-    tip: '3 câu hỏi chẩn đoán nhanh: Loại da hiện tại, Vấn đề da khó chịu nhất, Sản phẩm đang dùng kết hợp.'
-  },
-  {
-    title: 'Luồng 2 — Tư vấn Routine chuyên sâu cá nhân hóa',
-    badge: 'Giữ chân & Tăng tỷ lệ mua', badgeClass: 'badge-blue', color: 'blue',
-    steps: [
-      { num: 'Bước 1', title: 'Lập hồ sơ bệnh lý', desc: 'Hỏi về tiền sử kích ứng da, ngân sách và vấn đề sinh hoạt' },
-      { num: 'Bước 2', title: 'Thiết lập Routine', desc: 'Chia rõ các bước Sáng & Tối, thứ tự layer trước/sau' },
-      { num: 'Bước 3', title: 'Khuyến cáo xung khắc', desc: 'Chỉ rõ những hoạt chất KHÔNG được mix chung (như Retinol + BHA)' },
-      { num: 'Bước 4', title: 'Kiến thức khoa học', desc: 'Chia sẻ link phân tích chuyên môn của oriderm.com để khách đọc thêm' },
-      { num: 'Bước 5', title: 'Hẹn ngày tái khám', desc: 'Chủ động đề xuất theo dõi và hỏi lại sau 14 ngày sử dụng' }
-    ]
-  },
-  {
-    title: 'Luồng 3 — Giải quyết khiếu nại kích ứng / Dị ứng da',
-    badge: 'QUY TRÌNH KHẨN CẤP', badgeClass: 'badge-red', color: 'red',
-    steps: [
-      { num: 'Bước 1', title: 'Xoa dịu tức thì', desc: 'Xin lỗi và thể hiện sự đồng hành với lo lắng của khách' },
-      { num: 'Bước 2', title: 'Đo lường mức độ', desc: 'Yêu cầu cung cấp ảnh chụp dưới ánh sáng tự nhiên để đánh giá' },
-      { num: 'Bước 3', title: 'Xử lý theo cấp độ', desc: 'Hướng dẫn sơ cứu, rửa nước muối sinh lý hoặc khuyên đi khám da liễu' },
-      { num: 'Bước 4', title: 'Đổi trả & Đền bù', desc: 'Kích hoạt chính sách hoàn tiền/sản phẩm mới do lỗi kích ứng' }
-    ],
-    severity: [
-      { level: 'Cấp độ 1: NHẸ', color: '#16A34A', desc: 'Châm chích nhẹ, ngứa thoáng qua dưới 15 phút. Hướng dẫn giảm tần suất dùng.' },
-      { level: 'Cấp độ 2: TRUNG BÌNH', color: '#D97706', desc: 'Da nổi mẩn đỏ tại chỗ, ngứa kéo dài. Dừng toàn bộ dưỡng chất, chỉ dùng serum phục hồi.' },
-      { level: 'Cấp độ 3: NẶNG', color: '#DC2626', desc: 'Da sưng nề, nổi đỏ kèm mụn nước mủ. Dừng dùng ngay và khuyên khách đến phòng khám da liễu gần nhất.' }
-    ],
-    cta: 'Xem Chính sách đền bù Ori Derm'
-  },
-  {
-    title: 'Luồng 4 — Kiểm tra uy tín thương hiệu / Chất lượng hàng hóa',
-    badge: 'Tương tác nhạy cảm', badgeClass: 'badge-purple', color: 'purple',
-    steps: [
-      { num: 'Bước 1', title: 'Tuyệt đối không phản kháng', desc: 'Chào đón thắc mắc bằng thái độ cởi mở. Nói: "Cảm ơn bạn đã quan tâm, để Ori Derm hỗ trợ bạn..."' },
-      { num: 'Bước 2', title: 'Đưa bằng chứng trực quan', desc: 'Gửi giấy chứng nhận CO/CQ, tem chính giá, hình đơn VAT nhập khẩu và mã quét barcode' },
-      { num: 'Bước 3', title: 'Hỗ trợ xác minh thêm', desc: 'Cam kết đền bù 300% nếu phát hiện hàng giả, môi giới tới hotline 098 805 1350' }
-    ]
-  },
-  {
-    title: 'Luồng 5 — Truy vấn trạng thái Đơn hàng / Vận chuyển / Đổi trả',
-    badge: 'Thời hạn cam kết xử lý: 5 Phút', badgeClass: 'badge-teal', color: 'teal',
-    steps: [
-      { num: 'Bước 1', title: 'Xin số ĐT & Mã đơn', desc: 'Hỏi nhận thông tin cơ bản để tra cứu hệ thống CRM ngay lập tức' },
-      { num: 'Bước 2', title: 'Xác minh & Đưa lịch trình', desc: 'Thông báo vị trí hiện tại, tên hãng giao hàng và thời gian dự kiến nhận' },
-      { num: 'Bước 3', title: 'Xử lý bù đắp (Nếu trễ)', desc: 'Nếu bị giao chậm hơn cam kết, tặng ngay mã ưu đãi voucher cho đơn hàng kế tiếp' }
-    ]
-  }
-];
-let flowsData = getLS('flows_data', null) || JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
-let editingFlowIdx = null;
-
-/* ═══════════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════════ */
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-
-function getLS(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-  catch { return fallback; }
-}
-function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
-
-/* ═══════════════════════════════════════
-   SIDEBAR
-   ═══════════════════════════════════════ */
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('overlay');
-const menuToggle = document.getElementById('menuToggle');
-
-function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
-function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
-menuToggle.addEventListener('click', openSidebar);
-overlay.addEventListener('click', closeSidebar);
-
-/* ═══════════════════════════════════════
-   NAVIGATION
-   ═══════════════════════════════════════ */
-let activeSection = 'camnang';
-const sections = { camnang: 'sectionCamNang', mautinnhan: 'sectionMauTinNhan' };
-const navItems = document.querySelectorAll('.sb-item[data-section]');
-
-function switchSection(name) {
-  activeSection = name;
-  Object.keys(sections).forEach(k => {
-    document.getElementById(sections[k]).classList.toggle('hidden', k !== name);
-  });
-  navItems.forEach(n => n.classList.toggle('active', n.dataset.section === name));
-  closeSidebar();
-}
-navItems.forEach(n => n.addEventListener('click', () => switchSection(n.dataset.section)));
-
-/* ═══════════════════════════════════════
-   ACCORDION
-   ═══════════════════════════════════════ */
-function toggleAcc(header) {
-  header.classList.toggle('open');
-  const body = header.nextElementSibling;
-  body.classList.toggle('open');
-}
-
-/* ═══════════════════════════════════════
-   PART 3: QUY ƯỚC NGÔN TỪ
-   ═══════════════════════════════════════ */
-let quGreen = getLS('qu_green', null) || [...DEFAULT_QU_GREEN];
-let quRed = getLS('qu_red', null) || [...DEFAULT_QU_RED];
-
-function renderQuList(type) {
-  const items = type === 'green' ? quGreen : quRed;
-  const el = document.getElementById(type === 'green' ? 'quGreenList' : 'quRedList');
-  el.innerHTML = items.map(item => `
-    <div class="qu-item">
-      <div class="qu-item-text">
-        <div class="qu-item-quote">${escHtml(item.quote)}</div>
-        <div class="qu-item-explain">${escHtml(item.explain)}</div>
-      </div>
-      <button class="qu-del" onclick="deleteQu('${type}','${item.id}')" aria-label="Xóa"><i class="ti ti-trash"></i></button>
-    </div>
-  `).join('');
-}
-
-function deleteQu(type, id) {
-  showConfirm('Xóa mục này?', 'Bạn có chắc chắn muốn xóa quy ước này?', () => {
-    if (type === 'green') { quGreen = quGreen.filter(i => i.id !== id); setLS('qu_green', quGreen); renderQuList('green'); }
-    else { quRed = quRed.filter(i => i.id !== id); setLS('qu_red', quRed); renderQuList('red'); }
-  });
-}
-
-function showQuForm(type) {
-  const wrap = document.getElementById(type === 'green' ? 'quGreenFormWrap' : 'quRedFormWrap');
-  wrap.innerHTML = `
-    <div class="qu-form">
-      <input type="text" id="quQuote_${type}" placeholder="Câu nói mẫu (VD: &quot;Mình sẽ kiểm tra...&quot;)">
-      <input type="text" id="quExplain_${type}" placeholder="Giải thích ngắn gọn">
-      <div class="qu-form-actions">
-        <button class="btn btn-primary" onclick="saveQu('${type}')">Lưu</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('${type==='green'?'quGreenFormWrap':'quRedFormWrap'}').innerHTML=''">Hủy</button>
-      </div>
-    </div>
-  `;
-  document.getElementById('quQuote_' + type).focus();
-}
-
-function saveQu(type) {
-  const quote = document.getElementById('quQuote_' + type).value.trim();
-  const explain = document.getElementById('quExplain_' + type).value.trim();
-  if (!quote) return;
-  const item = { id: uid(), quote, explain };
-  if (type === 'green') { quGreen.push(item); setLS('qu_green', quGreen); }
-  else { quRed.push(item); setLS('qu_red', quRed); }
-  renderQuList(type);
-  document.getElementById(type === 'green' ? 'quGreenFormWrap' : 'quRedFormWrap').innerHTML = '';
-}
-
-function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-/* ═══════════════════════════════════════
-   PART 4: FLOWS
-   ═══════════════════════════════════════ */
-function renderFlows() {
-  const container = document.getElementById('flowsContainer');
-  container.innerHTML = flowsData.map((flow, idx) => {
-    const colorMap = { teal: 'var(--teal)', blue: 'var(--blue)', red: 'var(--red)', purple: 'var(--purple)' };
-    const c = colorMap[flow.color] || 'var(--teal)';
-
-    // If this flow is being edited, show edit form
-    if (editingFlowIdx === idx) {
-      return renderFlowEditForm(flow, idx, c);
-    }
-
-    let stepsHtml = flow.steps.map((s, si) => {
-      let arrow = si < flow.steps.length - 1 ? '<div class="flow-arrow"><i class="ti ti-chevron-right"></i></div>' : '';
-      return `
-        <div class="flow-step" style="border-color:${c}20">
-          <div class="flow-step-num" style="color:${c}">${escHtml(s.num)}</div>
-          <div class="flow-step-title">${escHtml(s.title)}</div>
-          <div class="flow-step-desc">${escHtml(s.desc)}</div>
-        </div>${arrow}`;
-    }).join('');
-
-    let extra = '';
-    if (flow.tip) {
-      extra += `<div class="flow-tip"><i class="ti ti-bulb"></i><span><strong>Mẹo Dược sĩ:</strong> ${escHtml(flow.tip)}</span></div>`;
-    }
-    if (flow.severity) {
-      extra += `<div class="severity-table">${flow.severity.map(s => `
-        <div class="severity-row">
-          <div class="severity-dot" style="background:${s.color}"></div>
-          <div class="severity-level" style="color:${s.color}">${escHtml(s.level)}</div>
-          <div>${escHtml(s.desc)}</div>
+      <div id="sectionMauTinNhan" class="hidden">
+        <h1 class="section-heading"><i class="ti ti-message-plus"></i> Mẫu tin nhắn CSKH</h1>
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input type="text" class="search-input" id="searchTemplate" placeholder="Tìm kiếm mẫu tin nhắn...">
         </div>
-      `).join('')}</div>`;
-    }
-    if (flow.cta) {
-      extra += `<button class="cta-btn"><i class="ti ti-external-link"></i> ${escHtml(flow.cta)}</button>`;
-    }
 
-    return `
-      <div class="flow-card" data-search-target>
-        <div class="flow-header" onclick="toggleFlow(this)">
-          <div class="flow-title"><i class="ti ti-git-branch" style="color:${c}"></i>${escHtml(flow.title)}</div>
-          <div class="flow-header-right">
-            <button class="flow-edit-btn" onclick="event.stopPropagation();startEditFlow(${idx})" aria-label="Chỉnh sửa luồng"><i class="ti ti-pencil"></i></button>
-            <span class="badge ${flow.badgeClass}">${escHtml(flow.badge)}</span>
+        <div class="cat-tabs" id="catTabs"></div>
+        <div class="add-cat-wrap" id="addCatWrap">
+          <button class="add-cat-btn" id="addCatBtn" onclick="showAddCatForm()"><i class="ti ti-plus"></i> Thêm danh mục
+            mới</button>
+          <div class="add-cat-form hidden" id="addCatForm">
+            <input type="text" id="addCatInput" placeholder="Tên danh mục mới...">
+            <button class="btn btn-primary" onclick="saveNewCat()">Lưu</button>
+            <button class="btn btn-ghost" onclick="hideAddCatForm()">Hủy</button>
           </div>
         </div>
-        <div class="flow-body${idx === 0 ? ' open' : ''}">
-          <div class="flow-content">
-            <div class="flow-steps">${stepsHtml}</div>
-            ${extra}
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-}
+        <div id="catSections"></div>
+      </div>
 
-function renderFlowEditForm(flow, idx, c) {
-  let stepsFields = flow.steps.map((s, si) => `
-    <div class="fe-step">
-      <div class="fe-step-num">${escHtml(s.num)}</div>
-      <label>Tiêu đề bước</label>
-      <input type="text" id="feTitle_${idx}_${si}" value="${escAttr(s.title)}">
-      <label>Mô tả</label>
-      <textarea id="feDesc_${idx}_${si}" rows="2">${escHtml(s.desc)}</textarea>
+      <!-- ══════════════════════════════════════════
+     SECTION 3: CẤU HÌNH KẾT NỐI SUPABASE
+     ══════════════════════════════════════════ -->
+      <div id="sectionCauHinh" class="hidden">
+        <h1 class="section-heading"><i class="ti ti-settings"></i> Cấu hình kết nối Supabase</h1>
+        <div class="info-box"
+          style="background:var(--light); border-color:var(--acc); color:var(--pri); margin-bottom: 20px;">
+          <i class="ti ti-info-circle"></i>
+          <span>Cấu hình thông tin kết nối Supabase để đồng bộ dữ liệu trực tuyến giữa các thiết bị. Dữ liệu cấu hình sẽ
+            được lưu trong trình duyệt của bạn.</span>
+        </div>
+        <div class="inline-form"
+          style="background:var(--white); border:1px solid var(--gray200); border-radius:var(--radius-lg); padding:24px;">
+          <label style="font-weight:600; margin-bottom:6px; display:block;">Supabase URL</label>
+          <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co"
+            value="https://pqtwvmliujdcrlmbaxhv.supabase.co" style="margin-bottom:16px;">
+
+          <label style="font-weight:600; margin-bottom:6px; display:block;">Supabase Anon Key (Public Key)</label>
+          <input type="password" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            style="margin-bottom:20px;">
+
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveSupabaseConfig()"><i class="ti ti-device-floppy"></i> Lưu cấu
+              hình</button>
+            <button class="btn btn-ghost" onclick="testSupabaseConnection()"><i class="ti ti-refresh"></i> Kiểm tra kết
+              nối</button>
+          </div>
+          <div id="configStatus" class="text-sm mt-12" style="font-weight:500;"></div>
+        </div>
+      </div>
+
+    </div><!-- /container -->
+  </main>
+
+  <!-- ═══════════ CONFIRM MODAL ═══════════ -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <div class="modal-title" id="modalTitle">Xác nhận</div>
+      <div class="modal-text" id="modalText">Bạn có chắc chắn muốn thực hiện?</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Hủy</button>
+        <button class="btn btn-red" id="modalConfirmBtn">Xóa</button>
+      </div>
     </div>
-  `).join('');
+  </div>
 
-  let tipField = '';
-  if (flow.tip !== undefined) {
-    tipField = `
-      <div class="fe-tip-wrap">
-        <label><i class="ti ti-bulb"></i> Mẹo Dược sĩ</label>
-        <textarea id="feTip_${idx}" rows="2">${escHtml(flow.tip || '')}</textarea>
-      </div>`;
-  }
+  <script>
+    /* ═══════════════════════════════════════
+       DATA & STATE
+       ═══════════════════════════════════════ */
+    var sbClient = null;
 
-  return `
-    <div class="flow-card" data-search-target>
-      <div class="flow-header" style="cursor:default;background:var(--blue-light)">
-        <div class="flow-title"><i class="ti ti-pencil" style="color:var(--blue)"></i> Đang chỉnh sửa: ${escHtml(flow.title)}</div>
-        <span class="badge badge-blue">Chế độ chỉnh sửa</span>
-      </div>
-      <div class="flow-edit-form">
-        ${stepsFields}
-        ${tipField}
-        <div class="fe-actions">
-          <button class="btn btn-primary" onclick="saveEditFlow(${idx})"><i class="ti ti-check"></i> Lưu thay đổi</button>
-          <button class="btn btn-ghost" onclick="cancelEditFlow()">Hủy</button>
-        </div>
-      </div>
-    </div>`;
-}
+    // Default Quy Uoc items
+    const DEFAULT_QU_GREEN = [
+      { id: 'g1', quote: '"Với tình trạng da bạn vừa mô tả..."', explain: 'Lắng nghe cá nhân hóa, thể hiện sự lắng nghe kỹ.' },
+      { id: 'g2', quote: '"Thành phần hoạt chất X giúp cải thiện Y nhờ cơ chế..."', explain: 'Sử dụng chuyên môn y khoa chính thống để tăng uy tín.' },
+      { id: 'g3', quote: '"Mình đề xuất bạn có thể nhắc thêm giải pháp..."', explain: 'Khơi gợi giải pháp nhẹ nhàng, không ép khách mua.' },
+      { id: 'g4', quote: '"Mình rất tiếc và hiểu cảm giác của bạn lúc này..."', explain: 'Tuyệt đối cần dùng đối với khách hàng khiếu nại, xử lý khéo léo.' }
+    ];
+    const DEFAULT_QU_RED = [
+      { id: 'r1', quote: '"Trị dứt điểm hoàn toàn / Cam kết 100%..."', explain: 'Cấm đoán. Sai lệch bản chất khoa học của ngành da liễu.' },
+      { id: 'r2', quote: '"Bên shop khác bán toàn là hàng fake đó..."', explain: 'Hành vi hạ bệ, đánh phá đối thủ làm mất uy tín thương hiệu.' },
+      { id: 'r3', quote: '"Do bạn tự dùng sai hướng dẫn nên mới bị..."', explain: 'Đổ lỗi cho khách hàng trước khi tìm hiểu rõ căn nguyên.' },
+      { id: 'r4', quote: '"Cái này mình cũng không rõ/không biết nữa..."', explain: 'Nếu chưa rõ, phải xin phép kiểm tra rồi phản hồi lại ngay sau đó.' }
+    ];
 
-function startEditFlow(idx) {
-  editingFlowIdx = idx;
-  renderFlows();
-}
+    // Default templates
+    const DEFAULT_TEMPLATES = {
+      "Chào hỏi / Tiếp nhận": [
+        { id: 't1', situation: 'Mở đầu chuẩn', content: 'Dược sĩ tư vấn Ori Derm xin chào [Tên khách]! Mình có thể hỗ trợ gì cho bạn hôm nay ạ? 🌿' },
+        { id: 't2', situation: 'Khách nhắn ngoài giờ', content: 'Ori Derm đã ghi nhận tin nhắn của bạn. Dược sĩ tư vấn sẽ phản hồi trong vòng 30 phút khi bắt đầu giờ làm việc (8:00–22:00). Bạn vui lòng chờ nhé! 🙏' }
+      ],
+      "Xác nhận đơn hàng": [
+        { id: 't3', situation: 'Đơn vừa đặt thành công', content: 'Ori Derm đã nhận được đơn hàng #[MÃ ĐƠN] của bạn rồi ạ! 🎉 Dự kiến giao trong [X] ngày làm việc. Mình sẽ cập nhật mã vận đơn ngay khi hàng xuất kho nhé.' },
+        { id: 't4', situation: 'Xác nhận COD', content: 'Bạn đặt thanh toán khi nhận hàng (COD), Ori Derm xin xác nhận đơn #[MÃ ĐƠN] — tổng thanh toán khi nhận: [SỐ TIỀN]đ. Shipper sẽ liên hệ trước khi giao nhé!' }
+      ],
+      "Cập nhật vận chuyển": [
+        { id: 't5', situation: 'Thông báo xuất kho', content: 'Đơn hàng #[MÃ ĐƠN] của bạn vừa xuất kho rồi ạ! 📦 Mã vận đơn: [MÃ VẬN ĐƠN]. Bạn có thể tra cứu tại ghtk.vn nhé. Dự kiến nhận hàng: [NGÀY].' },
+        { id: 't6', situation: 'Đơn bị chậm', content: 'Ori Derm thành thật xin lỗi bạn vì đơn #[MÃ ĐƠN] bị chậm hơn dự kiến do [LÝ DO]. Đơn sẽ đến tay bạn chậm nhất vào [NGÀY MỚI]. Ori Derm gửi kèm mã ưu đãi [MÃ] giảm [X]% cho đơn tiếp theo để bù đắp nhé! 🙏' }
+      ],
+      "Xử lý khiếu nại / Đổi trả": [
+        { id: 't7', situation: 'Khách phản ánh kích ứng', content: 'Mình rất tiếc khi nghe bạn gặp tình trạng này 😔 Bạn có thể chụp ảnh vùng da bị kích ứng dưới ánh sáng tự nhiên gửi cho mình không ạ? Mình sẽ đánh giá và hỗ trợ ngay.' },
+        { id: 't8', situation: 'Xác nhận đổi/trả hàng', content: 'Ori Derm xác nhận yêu cầu đổi/trả đơn #[MÃ ĐƠN] của bạn. Bạn vui lòng gửi hàng về địa chỉ: [ĐỊA CHỈ KHO]. Sau khi nhận hàng, Ori Derm sẽ hoàn tiền/đổi hàng trong vòng 2–3 ngày làm việc.' }
+      ],
+      "Tư vấn sản phẩm": [
+        { id: 't9', situation: 'Chưa xác định loại da', content: 'Để tư vấn chính xác nhất, bạn cho mình biết thêm:\n(1) Loại da của bạn là da dầu, da khô hay da hỗn hợp?\n(2) Vấn đề da bạn đang muốn cải thiện nhất là gì?\n(3) Hiện bạn đang dùng những sản phẩm nào rồi ạ?' },
+        { id: 't10', situation: 'Khuyến nghị routine cơ bản', content: 'Dựa trên tình trạng da bạn chia sẻ, mình đề xuất routine cơ bản:\n\nSáng: Sữa rửa mặt → Toner → Serum vitamin C → Kem chống nắng SPF50+.\nTối: Sữa rửa mặt → Toner → Serum trị liệu → Kem dưỡng ẩm.\n\nBạn muốn mình gợi ý sản phẩm cụ thể ở bước nào không ạ?' }
+      ],
+      "Kết thúc hội thoại": [
+        { id: 't11', situation: 'Kết thúc chuẩn', content: 'Cảm ơn bạn đã tin tưởng Ori Derm! 🌿 Nếu còn thắc mắc gì về da liễu hoặc sản phẩm, bạn cứ nhắn lại bất cứ lúc nào nhé. Chúc bạn một ngày thật vui!' },
+        { id: 't12', situation: 'Sau khi giải quyết khiếu nại', content: 'Ori Derm rất vui vì đã hỗ trợ được bạn. Sự hài lòng của bạn là điều Ori Derm luôn đặt lên hàng đầu 🙏 Chúc bạn mau hồi phục và làn da sớm cải thiện nhé!' }
+      ]
+    };
 
-function cancelEditFlow() {
-  editingFlowIdx = null;
-  renderFlows();
-}
+    const DEFAULT_FLOWS_DATA = [
+      {
+        title: 'Luồng 1 — Khách tìm hiểu sản phẩm cụ thể',
+        badge: 'Tỷ lệ gặp: 70%', badgeClass: 'badge-teal', color: 'teal',
+        steps: [
+          { num: 'Bước 1', title: 'Đọc hiểu tâm lý', desc: 'Nhận diện tâm lý khách để điều chỉnh cách tư vấn phù hợp' },
+          { num: 'Bước 2a', title: 'Có sẵn SP?', desc: 'Cung cấp công dụng chính xác, có các điểm lưu ý nếu cần' },
+          { num: 'Bước 2b', title: 'Chưa có SP?', desc: 'Hỏi 3 câu hỏi sàng lọc: Tuổi, Giới tính, Thời gian sử dụng' },
+          { num: 'Bước 3', title: 'Đồng tư vấn', desc: 'Đưa ra routine gợi ý kèm giải thích ngắn để khách hiểu rõ' }
+        ],
+        tip: '3 câu hỏi chẩn đoán nhanh: Loại da hiện tại, Vấn đề da khó chịu nhất, Sản phẩm đang dùng kết hợp.'
+      },
+      {
+        title: 'Luồng 2 — Tư vấn Routine chuyên sâu cá nhân hóa',
+        badge: 'Giữ chân & Tăng tỷ lệ mua', badgeClass: 'badge-blue', color: 'blue',
+        steps: [
+          { num: 'Bước 1', title: 'Lập hồ sơ bệnh lý', desc: 'Hỏi về tiền sử kích ứng da, ngân sách và vấn đề sinh hoạt' },
+          { num: 'Bước 2', title: 'Thiết lập Routine', desc: 'Chia rõ các bước Sáng & Tối, thứ tự layer trước/sau' },
+          { num: 'Bước 3', title: 'Khuyến cáo xung khắc', desc: 'Chỉ rõ những hoạt chất KHÔNG được mix chung (như Retinol + BHA)' },
+          { num: 'Bước 4', title: 'Kiến thức khoa học', desc: 'Chia sẻ link phân tích chuyên môn của oriderm.com để khách đọc thêm' },
+          { num: 'Bước 5', title: 'Hẹn ngày tái khám', desc: 'Chủ động đề xuất theo dõi và hỏi lại sau 14 ngày sử dụng' }
+        ]
+      },
+      {
+        title: 'Luồng 3 — Giải quyết khiếu nại kích ứng / Dị ứng da',
+        badge: 'QUY TRÌNH KHẨN CẤP', badgeClass: 'badge-red', color: 'red',
+        steps: [
+          { num: 'Bước 1', title: 'Xoa dịu tức thì', desc: 'Xin lỗi và thể hiện sự đồng hành với lo lắng của khách' },
+          { num: 'Bước 2', title: 'Đo lường mức độ', desc: 'Yêu cầu cung cấp ảnh chụp dưới ánh sáng tự nhiên để đánh giá' },
+          { num: 'Bước 3', title: 'Xử lý theo cấp độ', desc: 'Hướng dẫn sơ cứu, rửa nước muối sinh lý hoặc khuyên đi khám da liễu' },
+          { num: 'Bước 4', title: 'Đổi trả & Đền bù', desc: 'Kích hoạt chính sách hoàn tiền/sản phẩm mới do lỗi kích ứng' }
+        ],
+        severity: [
+          { level: 'Cấp độ 1: NHẸ', color: '#16A34A', desc: 'Châm chích nhẹ, ngứa thoáng qua dưới 15 phút. Hướng dẫn giảm tần suất dùng.' },
+          { level: 'Cấp độ 2: TRUNG BÌNH', color: '#D97706', desc: 'Da nổi mẩn đỏ tại chỗ, ngứa kéo dài. Dừng toàn bộ dưỡng chất, chỉ dùng serum phục hồi.' },
+          { level: 'Cấp độ 3: NẶNG', color: '#DC2626', desc: 'Da sưng nề, nổi đỏ kèm mụn nước mủ. Dừng dùng ngay và khuyên khách đến phòng khám da liễu gần nhất.' }
+        ],
+        cta: 'Xem Chính sách đền bù Ori Derm'
+      },
+      {
+        title: 'Luồng 4 — Kiểm tra uy tín thương hiệu / Chất lượng hàng hóa',
+        badge: 'Tương tác nhạy cảm', badgeClass: 'badge-purple', color: 'purple',
+        steps: [
+          { num: 'Bước 1', title: 'Tuyệt đối không phản kháng', desc: 'Chào đón thắc mắc bằng thái độ cởi mở. Nói: "Cảm ơn bạn đã quan tâm, để Ori Derm hỗ trợ bạn..."' },
+          { num: 'Bước 2', title: 'Đưa bằng chứng trực quan', desc: 'Gửi giấy chứng nhận CO/CQ, tem chính giá, hình đơn VAT nhập khẩu và mã quét barcode' },
+          { num: 'Bước 3', title: 'Hỗ trợ xác minh thêm', desc: 'Cam kết đền bù 300% nếu phát hiện hàng giả, môi giới tới hotline 098 805 1350' }
+        ]
+      },
+      {
+        title: 'Luồng 5 — Truy vấn trạng thái Đơn hàng / Vận chuyển / Đổi trả',
+        badge: 'Thời hạn cam kết xử lý: 5 Phút', badgeClass: 'badge-teal', color: 'teal',
+        steps: [
+          { num: 'Bước 1', title: 'Xin số ĐT & Mã đơn', desc: 'Hỏi nhận thông tin cơ bản để tra cứu hệ thống CRM ngay lập tức' },
+          { num: 'Bước 2', title: 'Xác minh & Đưa lịch trình', desc: 'Thông báo vị trí hiện tại, tên hãng giao hàng và thời gian dự kiến nhận' },
+          { num: 'Bước 3', title: 'Xử lý bù đắp (Nếu trễ)', desc: 'Nếu bị giao chậm hơn cam kết, tặng ngay mã ưu đãi voucher cho đơn hàng kế tiếp' }
+        ]
+      }
+    ];
+    let flowsData = getLS('flows_data', null) || JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
+    let editingFlowIdx = null;
 
-function saveEditFlow(idx) {
-  const flow = flowsData[idx];
-  // Read step values
-  flow.steps.forEach((s, si) => {
-    const titleEl = document.getElementById('feTitle_' + idx + '_' + si);
-    const descEl = document.getElementById('feDesc_' + idx + '_' + si);
-    if (titleEl) s.title = titleEl.value.trim() || s.title;
-    if (descEl) s.desc = descEl.value.trim() || s.desc;
-  });
-  // Read tip
-  const tipEl = document.getElementById('feTip_' + idx);
-  if (tipEl) flow.tip = tipEl.value.trim();
-  // Persist
-  setLS('flows_data', flowsData);
-  editingFlowIdx = null;
-  renderFlows();
-}
-
-function toggleFlow(header) {
-  const body = header.nextElementSibling;
-  body.classList.toggle('open');
-}
-
-/* ═══════════════════════════════════════
-   SECTION 2: MẪU TIN NHẮN
-   ═══════════════════════════════════════ */
-let templates = getLS('templates', null) || JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
-let categories = getLS('categories', null) || Object.keys(DEFAULT_TEMPLATES);
-let activeCatFilter = 'all';
-let editingTemplateId = null;
-
-function saveTemplates() { setLS('templates', templates); setLS('categories', categories); }
-
-function renderTemplateSection() {
-  renderCatTabs();
-  renderCatSections();
-}
-
-function renderCatTabs() {
-  const tabs = document.getElementById('catTabs');
-  const allActive = activeCatFilter === 'all' ? 'active' : '';
-  let html = `<button class="cat-tab ${allActive}" onclick="filterCat('all')">Tất cả</button>`;
-  categories.forEach(cat => {
-    const active = activeCatFilter === cat ? 'active' : '';
-    html += `<button class="cat-tab ${active}" onclick="filterCat('${escAttr(cat)}')">${escHtml(cat)}</button>`;
-  });
-  tabs.innerHTML = html;
-}
-
-function renderCatSections() {
-  const container = document.getElementById('catSections');
-  const searchVal = (document.getElementById('searchTemplate')?.value || '').toLowerCase();
-  let html = '';
-
-  const catsToShow = activeCatFilter === 'all' ? categories : [activeCatFilter];
-
-  catsToShow.forEach(cat => {
-    let items = templates[cat] || [];
-    if (searchVal) {
-      items = items.filter(t =>
-        t.situation.toLowerCase().includes(searchVal) ||
-        t.content.toLowerCase().includes(searchVal)
-      );
-    }
-    if (searchVal && items.length === 0) return;
-
-    html += `
-      <div class="cat-section">
-        <div class="cat-header" onclick="toggleCatBody(this)">
-          <div class="cat-header-left">
-            <i class="ti ti-chevron-down acc-chevron"></i>
-            <span class="cat-name">${escHtml(cat)}</span>
-            <span class="cat-count">${items.length}</span>
-          </div>
-          <button class="cat-add-btn" onclick="event.stopPropagation();showAddTmpl('${escAttr(cat)}')"><i class="ti ti-plus"></i> Thêm mẫu</button>
-        </div>
-        <div class="cat-body open">
-          ${items.map(t => renderTmplCard(t, cat)).join('')}
-          <div id="addTmplForm_${escAttr(cat)}"></div>
-        </div>
-      </div>`;
-  });
-  container.innerHTML = html;
-}
-
-function renderTmplCard(t, cat) {
-  if (editingTemplateId === t.id) {
-    return `
-      <div class="inline-form">
-        <label>Tình huống</label>
-        <input type="text" id="editSit_${t.id}" value="${escAttr(t.situation)}">
-        <label>Nội dung tin nhắn</label>
-        <textarea id="editCnt_${t.id}" rows="4">${escHtml(t.content)}</textarea>
-        <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveEditTmpl('${escAttr(cat)}','${t.id}')"><i class="ti ti-check"></i> Lưu</button>
-          <button class="btn btn-ghost" onclick="cancelEditTmpl()">Hủy</button>
-        </div>
-      </div>`;
-  }
-  return `
-    <div class="tmpl-card">
-      <div class="tmpl-situation">${escHtml(t.situation)}</div>
-      <div class="tmpl-content">${escHtml(t.content)}</div>
-      <div class="tmpl-actions">
-        <button class="tmpl-btn tmpl-btn-copy" onclick="copyTmpl(this,'${escAttr(t.content.replace(/'/g,"\\'").replace(/\n/g,"\\n"))}')" aria-label="Sao chép"><i class="ti ti-copy"></i> Sao chép</button>
-        <button class="tmpl-btn tmpl-btn-edit" onclick="editTmpl('${t.id}')" aria-label="Sửa"><i class="ti ti-pencil"></i></button>
-        <button class="tmpl-btn tmpl-btn-del" onclick="deleteTmpl('${escAttr(cat)}','${t.id}')" aria-label="Xóa"><i class="ti ti-trash"></i></button>
-      </div>
-    </div>`;
-}
-
-function copyTmpl(btn, text) {
-  // Decode escaped text
-  const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'");
-  navigator.clipboard.writeText(decoded).then(() => {
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-check"></i> Đã sao chép!';
-    btn.style.background = 'var(--acc)';
-    btn.style.color = '#fff';
-    setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; btn.style.color = ''; }, 1500);
-  }).catch(() => {
-    // Fallback
-    const ta = document.createElement('textarea');
-    ta.value = decoded; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-check"></i> Đã sao chép!';
-    setTimeout(() => { btn.innerHTML = original; }, 1500);
-  });
-}
-
-function editTmpl(id) { editingTemplateId = id; renderCatSections(); }
-function cancelEditTmpl() { editingTemplateId = null; renderCatSections(); }
-
-function saveEditTmpl(cat, id) {
-  const sit = document.getElementById('editSit_' + id).value.trim();
-  const cnt = document.getElementById('editCnt_' + id).value.trim();
-  if (!sit || !cnt) return;
-  const tmpl = templates[cat].find(t => t.id === id);
-  if (tmpl) { tmpl.situation = sit; tmpl.content = cnt; }
-  editingTemplateId = null;
-  saveTemplates();
-  renderCatSections();
-}
-
-function deleteTmpl(cat, id) {
-  showConfirm('Xóa mẫu tin nhắn này?', 'Mẫu tin nhắn sẽ bị xóa vĩnh viễn.', () => {
-    templates[cat] = templates[cat].filter(t => t.id !== id);
-    saveTemplates();
-    renderCatSections();
-  });
-}
-
-function showAddTmpl(cat) {
-  const form = document.getElementById('addTmplForm_' + cat);
-  if (!form) return;
-  form.innerHTML = `
-    <div class="inline-form">
-      <label>Tình huống</label>
-      <input type="text" id="newSit_${escAttr(cat)}" placeholder="VD: Khách hỏi về thành phần...">
-      <label>Nội dung tin nhắn</label>
-      <textarea id="newCnt_${escAttr(cat)}" rows="4" placeholder="Nhập nội dung mẫu tin nhắn..."></textarea>
-      <div class="form-actions">
-        <button class="btn btn-primary" onclick="saveAddTmpl('${escAttr(cat)}')"><i class="ti ti-check"></i> Lưu mẫu</button>
-        <button class="btn btn-ghost" onclick="this.closest('.inline-form').remove()">Hủy</button>
-      </div>
-    </div>`;
-  document.getElementById('newSit_' + cat)?.focus();
-}
-
-function saveAddTmpl(cat) {
-  const sit = document.getElementById('newSit_' + cat)?.value.trim();
-  const cnt = document.getElementById('newCnt_' + cat)?.value.trim();
-  if (!sit || !cnt) return;
-  if (!templates[cat]) templates[cat] = [];
-  templates[cat].push({ id: uid(), situation: sit, content: cnt });
-  saveTemplates();
-  renderCatSections();
-}
-
-function filterCat(cat) { activeCatFilter = cat; renderTemplateSection(); }
-
-function toggleCatBody(header) {
-  const body = header.nextElementSibling;
-  body.classList.toggle('open');
-  const chevron = header.querySelector('.acc-chevron');
-  if (chevron) chevron.style.transform = body.classList.contains('open') ? '' : 'rotate(-90deg)';
-}
-
-/* Add Category */
-function showAddCatForm() {
-  document.getElementById('addCatBtn').classList.add('hidden');
-  document.getElementById('addCatForm').classList.remove('hidden');
-  document.getElementById('addCatInput').focus();
-}
-function hideAddCatForm() {
-  document.getElementById('addCatBtn').classList.remove('hidden');
-  document.getElementById('addCatForm').classList.add('hidden');
-  document.getElementById('addCatInput').value = '';
-}
-function saveNewCat() {
-  const name = document.getElementById('addCatInput').value.trim();
-  if (!name || categories.includes(name)) return;
-  categories.push(name);
-  templates[name] = [];
-  saveTemplates();
-  hideAddCatForm();
-  renderTemplateSection();
-}
     /* ═══════════════════════════════════════
        HELPERS
        ═══════════════════════════════════════ */
