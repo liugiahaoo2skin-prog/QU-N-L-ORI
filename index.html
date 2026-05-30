@@ -2582,6 +2582,7 @@
         flowsData = newFlowsData;
 
         updateSyncBadge(true, "Đã đồng bộ trực tuyến");
+        renderTemplateSection(); 
         return true;
       } catch (e) {
         console.error("Lỗi đồng bộ dữ liệu từ Supabase:", e);
