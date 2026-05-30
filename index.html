@@ -2530,11 +2530,7 @@
           .select('*');
 
         if (tipErr) throw tipErr;
-         const { data: tipData, error: tipErr } = await sbClient
-          .from('flow_tips')
-          .select('*');
-        if (tipErr) throw tipErr;
-
+         
         const { data: metaData, error: metaErr } = await sbClient
           .from('flow_metadata')
           .select('*');
