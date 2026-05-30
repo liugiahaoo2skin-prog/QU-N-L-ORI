@@ -2557,15 +2557,23 @@
         });
 
         const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
-        newFlowsData.forEach((flow, fIdx) => {
-          const flowSteps = stepData.filter(s => s.flow_index === fIdx);
-          if (flowSteps.length > 0) {
-            flow.steps = flowSteps.map(fs => ({
-              num: fs.num || ('Bước ' + (fs.step_index + 1)),
-              title: fs.title,
-              desc: fs.description
-            }));
-          }
+        const allIndexes = [...new Set(stepData.map(s => s.flow_index))].sort((a,b) => a-b);
+const newFlowsData = allIndexes.map(fIdx => {
+  const existing = DEFAULT_FLOWS_DATA[fIdx] || { title: 'Luồng ' + (fIdx+1), badge: '', badgeClass: 'badge-teal', color: 'teal', steps: [] };
+  const flow = JSON.parse(JSON.stringify(existing));
+  const flowSteps = stepData.filter(s => s.flow_index === fIdx);
+  if (flowSteps.length > 0) {
+    flow.steps = flowSteps.map(fs => ({
+      num: fs.num || ('Bước ' + (fs.step_index + 1)),
+      title: fs.title,
+      desc: fs.description
+    }));
+  }
+  const flowTip = tipData.find(t => t.flow_index === fIdx);
+  if (flowTip) flow.tip = flowTip.tip;
+  return flow;
+});
+flowsData = newFlowsData;
           const flowTip = tipData.find(t => t.flow_index === fIdx);
           if (flowTip) {
             flow.tip = flowTip.tip;
