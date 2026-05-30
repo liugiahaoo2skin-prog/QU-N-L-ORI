@@ -2530,6 +2530,15 @@
           .select('*');
 
         if (tipErr) throw tipErr;
+         const { data: tipData, error: tipErr } = await sbClient
+          .from('flow_tips')
+          .select('*');
+        if (tipErr) throw tipErr;
+
+        const { data: metaData, error: metaErr } = await sbClient
+          .from('flow_metadata')
+          .select('*');
+        if (metaErr) throw metaErr;
 
         // Seed if empty
         if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
@@ -2557,8 +2566,15 @@
         });
         const allIndexes = [...new Set(stepData.map(s => s.flow_index))].sort((a,b) => a-b);
 const newFlowsData = allIndexes.map(fIdx => {
+  const meta = metaData.find(m => m.flow_index === fIdx);
   const existing = DEFAULT_FLOWS_DATA[fIdx] || { title: 'Luồng ' + (fIdx+1), badge: '', badgeClass: 'badge-teal', color: 'teal', steps: [] };
   const flow = JSON.parse(JSON.stringify(existing));
+  if (meta) {
+    flow.title = meta.title || flow.title;
+    flow.badge = meta.badge || flow.badge;
+    flow.badgeClass = meta.badge_class || flow.badgeClass;
+    flow.color = meta.color || flow.color;
+  }
   const flowSteps = stepData.filter(s => s.flow_index === fIdx);
   if (flowSteps.length > 0) {
     flow.steps = flowSteps.map(fs => ({
@@ -2893,6 +2909,13 @@ flowsData = newFlowsData;
         updateSyncBadge(true, "Đang lưu luồng mới...");
         try {
           const fIdx = flowsData.length - 1;
+          await sbClient.from('flow_metadata').insert({
+            flow_index: fIdx,
+            title: title,
+            badge: badge || '',
+            badge_class: colorMap[colorVal] || 'badge-teal',
+            color: colorVal
+          });
           for (let sIdx = 0; sIdx < steps.length; sIdx++) {
             await sbClient.from('flow_steps').insert({
               flow_index: fIdx,
