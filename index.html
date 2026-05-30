@@ -2565,23 +2565,6 @@
   }
 };
 
-        const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
-        newFlowsData.forEach((flow, fIdx) => {
-          const flowSteps = stepData.filter(s => s.flow_index === fIdx);
-          if (flowSteps.length > 0) {
-            flow.steps = flowSteps.map(fs => ({
-              num: fs.num || ('Bước ' + (fs.step_index + 1)),
-              title: fs.title,
-              desc: fs.description
-            }));
-          }
-          const flowTip = tipData.find(t => t.flow_index === fIdx);
-          if (flowTip) {
-            flow.tip = flowTip.tip;
-          }
-        });
-        flowsData = newFlowsData;
-
         updateSyncBadge(true, "Đã đồng bộ trực tuyến");
         renderTemplateSection(); 
         return true;
