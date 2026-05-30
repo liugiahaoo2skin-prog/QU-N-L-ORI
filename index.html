@@ -2572,14 +2572,7 @@ const newFlowsData = allIndexes.map(fIdx => {
   return flow;
 });
 flowsData = newFlowsData;
-          const flowTip = tipData.find(t => t.flow_index === fIdx);
-          if (flowTip) {
-            flow.tip = flowTip.tip;
-          }
-        });
-        flowsData = newFlowsData;
-
-        updateSyncBadge(true, "Đã đồng bộ trực tuyến");
+      updateSyncBadge(true, "Đã đồng bộ trực tuyến");
         renderTemplateSection(); 
         return true;
       } catch (e) {
