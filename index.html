@@ -2089,6 +2089,13 @@
         <span class="badge badge-blue">Chế độ chỉnh sửa</span>
       </div>
       <div class="flow-edit-form">
+        <div class="flow-edit-form">
+        <div class="fe-step">
+          <label style="color:var(--pri);font-weight:700;">Tiêu đề luồng</label>
+          <input type="text" id="feFlowTitle_${idx}" value="${escAttr(flow.title)}">
+          <label style="color:var(--pri);font-weight:700;">Badge hiển thị</label>
+          <input type="text" id="feFlowBadge_${idx}" value="${escAttr(flow.badge || '')}">
+        </div>
         ${stepsFields}
         ${tipField}
         <div class="fe-actions">
@@ -2111,6 +2118,10 @@
 
     async function saveEditFlow(idx) {
       const flow = flowsData[idx];
+      const titleEl = document.getElementById('feFlowTitle_' + idx);
+const badgeEl = document.getElementById('feFlowBadge_' + idx);
+if (titleEl) flow.title = titleEl.value.trim() || flow.title;
+if (badgeEl) flow.badge = badgeEl.value.trim();
       const updates = [];
       let tipUpdate = null;
 
