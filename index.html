@@ -1584,7 +1584,7 @@
           </div>
           <div class="acc-body open">
             <div class="acc-content">
-              <p class="text-sm text-gray mb-8">Nhìn vào nhãn hiển thị giới tính trên Pancake / Facebook để xưng hô chuẩn xác.</p>
+              <p class="text-sm text-gray mb-8">Nhận diện khách hàng qua tin nhắn để xưng hô chuẩn xác</p>
               <div class="tbl-wrap">
                 <table class="tbl">
                   <thead>
@@ -1595,31 +1595,39 @@
                       <th>TỰ XƯNG LÀ</th>
                     </tr>
                   </thead>
-                 <tbody>
-  <tr>
-    <td><strong>Khách hàng Nam</strong></td>
-    <td>Hệ thống Pancake / Facebook hiển thị giới tính Nam <em>(Áp dụng cho mọi lứa tuổi)</em></td>
-    <td><span class="pill">Anh</span></td>
-    <td>Ori / Dược sĩ Ori</td>
-  </tr>
-  <tr>
-    <td><strong>Khách hàng Nữ</strong></td>
-    <td>Hệ thống Pancake / Facebook hiển thị giới tính Nữ <em>(Áp dụng cho mọi lứa tuổi)</em></td>
-    <td><span class="pill">Chị</span></td>
-    <td>Ori / Dược sĩ Ori</td>
-  </tr>
-  <tr>
-    <td><strong>Chưa rõ thông tin</strong></td>
-    <td>Hệ thống không hiển thị giới tính hoặc hiển thị không chính xác</td>
-    <td><span class="pill">Anh/Chị (Mặc định)</span></td>
-    <td>Ori / Dược sĩ Ori</td>
-  </tr>
-</tbody>
+                  <tbody>
+                    <tr>
+                      <td><strong>Gen Z / Khách hàng trẻ</strong></td>
+                      <td>Nhắn "bạn ơi", dùng từ lóng, viết tắt tự nhiên, icons vui vẻ</td>
+                      <td><span class="pill">Bạn</span></td>
+                      <td>Mình</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Millennials / Từ 25–35 tuổi</strong></td>
+                      <td>Trao đổi lịch sự, hỏi thẳng vấn đề, chưa rõ độ tuổi cụ thể</td>
+                      <td><span class="pill">Bạn</span> hoặc <span class="pill">Anh/Chị</span></td>
+                      <td>Mình / Bên mình</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Trung niên / Trên 35 tuổi</strong></td>
+                      <td>Chủ động xưng Anh/Chị, trao đổi cứng cáp, trang trọng và kỹ lưỡng</td>
+                      <td><span class="pill">Anh/Chị</span></td>
+                      <td>Em / Bên mình</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Chưa xác định</strong></td>
+                      <td>Tin nhắn đầu tiên ngắn, chưa có tín hiệu ngữ cảnh rõ ràng</td>
+                      <td><span class="pill">Bạn (mặc định)</span></td>
+                      <td>Mình</td>
+                    </tr>
+                  </tbody>
                 </table>
               </div>
               <div class="info-box">
                 <i class="ti ti-alert-triangle"></i>
-                <span><strong>Quy chuẩn bắt buộc:</strong> Tất cả khách hàng (kể cả khách hàng trẻ hay lớn tuổi) đều được tôn trọng xưng hô là Anh/Chị dựa theo giới tính hiển thị trên hệ thống. Tuyệt đối không dùng các từ "Bạn", "Em", "Shop" hoặc "Cô/Chú/Bác", giữ sự nhất quán 100% từ đầu đến cuối phiên chat.</span>
+                <span><strong>Quy chuẩn bắt buộc:</strong> Khi đã xác định được cách gọi tên phù hợp, phải giữ sự nhất
+                  quán 100% đến hết cuộc hội thoại. Tuyệt đối không tự ý chuyển đổi xưng hô đột ngột giữa "Bạn" và "Chị"
+                  trong cùng một phiên chat.</span>
               </div>
             </div>
           </div>
@@ -2056,7 +2064,7 @@
       }).join('');
 
       // Add new flow button
-      container.innerHTML += `
+      el.innerHTML += `
         <button class="flow-add-btn" onclick="showAddFlowForm()">
           <i class="ti ti-plus"></i> Thêm luồng tư vấn mới
         </button>`;
@@ -2494,76 +2502,84 @@
     }
 
     async function syncAllFromSupabase() {
-  if (!sbClient) return false;
-  try {
-    const { data: quData, error: quErr } = await sbClient.from('quy_uoc_items').select('*').order('sort_order', { ascending: true });
-    if (quErr) throw quErr;
+      if (!sbClient) return false;
+      try {
+        const { data: quData, error: quErr } = await sbClient
+          .from('quy_uoc_items')
+          .select('*')
+          .order('sort_order', { ascending: true });
 
-    const { data: catData, error: catErr } = await sbClient.from('template_categories').select('*').order('order_index', { ascending: true });
-    if (catErr) throw catErr;
+        if (quErr) throw quErr;
 
-    const { data: tmplData, error: tmplErr } = await sbClient.from('message_templates').select('*').order('sort_order', { ascending: true });
-    if (tmplErr) throw tmplErr;
+        const { data: catData, error: catErr } = await sbClient
+          .from('template_categories')
+          .select('*')
+          .order('order_index', { ascending: true });
 
-    const { data: stepData, error: stepErr } = await sbClient.from('flow_steps').select('*').order('flow_index', { ascending: true }).order('step_index', { ascending: true });
-    if (stepErr) throw stepErr;
+        if (catErr) throw catErr;
 
-    const { data: tipData, error: tipErr } = await sbClient.from('flow_tips').select('*');
-    if (tipErr) throw tipErr;
+        const { data: tmplData, error: tmplErr } = await sbClient
+          .from('message_templates')
+          .select('*')
+          .order('sort_order', { ascending: true });
 
-    const { data: metaData, error: metaErr } = await sbClient.from('flow_metadata').select('*');
-    if (metaErr) throw metaErr;
+        if (tmplErr) throw tmplErr;
 
-    if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
-      updateSyncBadge(true, "Khởi tạo dữ liệu lần đầu...");
-      await seedSupabaseFromDefaults();
-      return syncAllFromSupabase();
-    }
+        const { data: stepData, error: stepErr } = await sbClient
+          .from('flow_steps')
+          .select('*')
+          .order('flow_index', { ascending: true })
+          .order('step_index', { ascending: true });
 
-    quGreen = quData.filter(i => i.type === 'green').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
-    quRed = quData.filter(i => i.type === 'red').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+        if (stepErr) throw stepErr;
 
-    categories = catData.map(c => c.name);
-    templates = {};
-    categories.forEach(cat => { templates[cat] = []; });
-    tmplData.forEach(t => {
-      if (!templates[t.category_name]) templates[t.category_name] = [];
-      templates[t.category_name].push({ id: t.id, situation: t.situation, content: t.content });
-    });
+        const { data: tipData, error: tipErr } = await sbClient
+          .from('flow_tips')
+          .select('*');
 
-    const allIndexes = [...new Set(stepData.map(s => s.flow_index))].sort((a, b) => a - b);
-    flowsData = allIndexes.map(fIdx => {
-      const meta = metaData.find(m => m.flow_index === fIdx);
-      const existing = DEFAULT_FLOWS_DATA[fIdx] || { title: 'Luồng ' + (fIdx + 1), badge: '', badgeClass: 'badge-teal', color: 'teal', steps: [] };
-      const flow = JSON.parse(JSON.stringify(existing));
-      if (meta) {
-        flow.title = meta.title || flow.title;
-        flow.badge = meta.badge || flow.badge;
-        flow.badgeClass = meta.badge_class || flow.badgeClass;
-        flow.color = meta.color || flow.color;
-      }
-      const flowSteps = stepData.filter(s => s.flow_index === fIdx);
-      if (flowSteps.length > 0) {
-        flow.steps = flowSteps.map(fs => ({
-          num: fs.num || ('Bước ' + (fs.step_index + 1)),
-          title: fs.title,
-          desc: fs.description
-        }));
-      }
-      const flowTip = tipData.find(t => t.flow_index === fIdx);
-      if (flowTip) flow.tip = flowTip.tip;
-      return flow;
-    });
+        if (tipErr) throw tipErr;
 
-    updateSyncBadge(true, "Đã đồng bộ trực tuyến");
-    renderTemplateSection();
-    return true;
-  } catch (e) {
-    console.error("Lỗi đồng bộ:", e);
-    updateSyncBadge(false, "Lỗi đồng bộ dữ liệu");
-    return false;
-  }
-};
+        // Seed if empty
+        if (quData.length === 0 && catData.length === 0 && tmplData.length === 0 && stepData.length === 0) {
+          updateSyncBadge(true, "Khởi tạo dữ liệu lần đầu...");
+          await seedSupabaseFromDefaults();
+          return syncAllFromSupabase();
+        }
+
+        // Map database values back to local variables
+        quGreen = quData.filter(i => i.type === 'green').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+        quRed = quData.filter(i => i.type === 'red').map(i => ({ id: i.id, quote: i.quote, explain: i.explain }));
+
+        categories = catData.map(c => c.name);
+        templates = {};
+        categories.forEach(cat => { templates[cat] = []; });
+        tmplData.forEach(t => {
+          if (!templates[t.category_name]) {
+            templates[t.category_name] = [];
+          }
+          templates[t.category_name].push({
+            id: t.id,
+            situation: t.situation,
+            content: t.content
+          });
+        });
+
+        const newFlowsData = JSON.parse(JSON.stringify(DEFAULT_FLOWS_DATA));
+        newFlowsData.forEach((flow, fIdx) => {
+          const flowSteps = stepData.filter(s => s.flow_index === fIdx);
+          if (flowSteps.length > 0) {
+            flow.steps = flowSteps.map(fs => ({
+              num: fs.num || ('Bước ' + (fs.step_index + 1)),
+              title: fs.title,
+              desc: fs.description
+            }));
+          }
+          const flowTip = tipData.find(t => t.flow_index === fIdx);
+          if (flowTip) {
+            flow.tip = flowTip.tip;
+          }
+        });
+        flowsData = newFlowsData;
 
         updateSyncBadge(true, "Đã đồng bộ trực tuyến");
         renderTemplateSection(); 
